@@ -1,0 +1,130 @@
+# STC Framework - Docker Compose
+# Brings up the complete infrastructure for the reference implementation.
+#
+# Services:
+#   - qdrant: Local vector store (data sovereignty)
+#   - ollama: Local embeddings and LLM inference (data sovereignty)
+#   - presidio-analyzer: PII detection (Sentinel layer)
+#   - presidio-anonymizer: PII redaction (Sentinel layer)
+#   - litellm: LLM gateway with routing, auth, cost tracking (Sentinel + Trainer)
+#   - phoenix: Observability and audit trail (shared backbone)
+#   - langfuse: Prompt registry and evaluation (audit layer)
+
+version: '3.8'
+
+services:
+  # ── Data Sovereignty Layer ──────────────────────────────────────────
+  
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    networks:
+      - stc-network
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    networks:
+      - stc-network
+
+  # ── Sentinel Layer ──────────────────────────────────────────────────
+  
+  presidio-analyzer:
+    image: mcr.microsoft.com/presidio-analyzer:latest
+    ports:
+      - "5002:5002"
+    networks:
+      - stc-network
+
+  presidio-anonymizer:
+    image: mcr.microsoft.com/presidio-anonymizer:latest
+    ports:
+      - "5001:5001"
+    networks:
+      - stc-network
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./reference-impl/config/litellm_config.yaml:/app/config.yaml
+    environment:
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-stc-master-key}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_REGION_NAME=${AWS_REGION_NAME:-us-east-1}
+      - PRESIDIO_ANALYZER_URL=http://presidio-analyzer:5002
+      - PRESIDIO_ANONYMIZER_URL=http://presidio-anonymizer:5001
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    depends_on:
+      - presidio-analyzer
+      - presidio-anonymizer
+    networks:
+      - stc-network
+
+  # ── Observability & Audit ───────────────────────────────────────────
+  
+  phoenix:
+    image: arizephoenix/phoenix:latest
+    ports:
+      - "6006:6006"
+    environment:
+      - PHOENIX_WORKING_DIR=/phoenix
+    volumes:
+      - phoenix_data:/phoenix
+    networks:
+      - stc-network
+
+  langfuse:
+    image: langfuse/langfuse:2
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET:-stc-langfuse-secret}
+      - SALT=${LANGFUSE_SALT:-stc-langfuse-salt}
+    depends_on:
+      - langfuse-db
+    networks:
+      - stc-network
+
+  langfuse-db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=langfuse
+      - POSTGRES_PASSWORD=langfuse
+      - POSTGRES_DB=langfuse
+    volumes:
+      - langfuse_db_data:/var/lib/postgresql/data
+    networks:
+      - stc-network
+
+volumes:
+  qdrant_data:
+  ollama_data:
+  phoenix_data:
+  langfuse_db_data:
+
+networks:
+  stc-network:
+    driver: bridge
