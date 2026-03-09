@@ -1,0 +1,32 @@
+# STC Framework - Bifrost AI Gateway Configuration
+# Use this for high-performance production deployments
+# with MCP governance and hierarchical budget management.
+#
+# Usage:
+#   docker-compose -f docker-compose.yaml -f docker-compose.bifrost.yaml up -d
+#
+# Then update stc-spec.yaml:
+#   sentinel.gateway.engine: bifrost
+#   sentinel.gateway.host: http://localhost:8080
+
+version: '3.8'
+
+services:
+  # ── Bifrost AI Gateway (replaces LiteLLM as Sentinel) ───────────────
+
+  bifrost:
+    image: maximhq/bifrost:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./reference-impl/config/bifrost_config.yaml:/app/config.yaml
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+    networks:
+      - stc-network
+
+  # ── Remove LiteLLM when using Bifrost ───────────────────────────────
+  # Comment out or remove the litellm service in the base docker-compose.yaml
