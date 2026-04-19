@@ -41,11 +41,11 @@ def test_flag_defaults_all_keys_covered() -> None:
 
 
 def test_flag_key_string_format() -> None:
-    # Dashboard operators rely on the ``stc.<subsystem>.<aspect>`` convention.
+    # Dashboard operators rely on the ``aihub.<fr>.<aspect>`` convention.
     for flag in FlagKey:
         parts = flag.value.split(".")
         assert len(parts) >= 3, flag.value
-        assert parts[0] == "stc"
+        assert parts[0] == "aihub"
 
 
 def test_offline_client_returns_defaults() -> None:
@@ -62,8 +62,8 @@ def test_offline_client_returns_defaults() -> None:
 
 def test_test_data_source_drives_evaluation() -> None:
     td = TestData.data_source()
-    td.update(td.flag(FlagKey.COMPLIANCE_ENABLED.value).variation_for_all(True))
-    td.update(td.flag(FlagKey.THREAT_DETECTION_ENABLED.value).variation_for_all(False))
+    td.update(td.flag(FlagKey.INPUT_FILTER_PROMPT_INJECTION.value).variation_for_all(True))
+    td.update(td.flag(FlagKey.INPUT_FILTER_PII.value).variation_for_all(False))
 
     settings = _settings(ld_offline_mode=False)
     client = LaunchDarklyClient(settings=settings, sdk_key="sdk-test", data_source=td)
@@ -72,8 +72,8 @@ def test_test_data_source_drives_evaluation() -> None:
     from ldclient import Context
 
     ctx = Context.builder("test").kind("service").build()
-    assert client.variation(FlagKey.COMPLIANCE_ENABLED, ctx, False) is True
-    assert client.variation(FlagKey.THREAT_DETECTION_ENABLED, ctx, True) is False
+    assert client.variation(FlagKey.INPUT_FILTER_PROMPT_INJECTION, ctx, False) is True
+    assert client.variation(FlagKey.INPUT_FILTER_PII, ctx, True) is False
     client.close()
 
 
@@ -100,16 +100,16 @@ def test_variation_failure_increments_fallback_metric() -> None:
     before = (
         get_metrics()
         .feature_flag_fallback_total.labels(
-            flag=FlagKey.COMPLIANCE_ENABLED.value,
+            flag=FlagKey.INPUT_FILTER_PROMPT_INJECTION.value,
         )
         ._value.get()
     )
     ctx = Context.builder("test").kind("service").build()
-    assert client.variation(FlagKey.COMPLIANCE_ENABLED, ctx, False) is False
+    assert client.variation(FlagKey.INPUT_FILTER_PROMPT_INJECTION, ctx, False) is False
     after = (
         get_metrics()
         .feature_flag_fallback_total.labels(
-            flag=FlagKey.COMPLIANCE_ENABLED.value,
+            flag=FlagKey.INPUT_FILTER_PROMPT_INJECTION.value,
         )
         ._value.get()
     )
@@ -128,7 +128,7 @@ def test_subsystem_registry_evaluates_full_flag_set() -> None:
     assert set(state.keys()) == set(FlagKey)
     assert all(v is True for v in state.values())
     # Cached state returned by should_initialize.
-    assert reg.should_initialize(FlagKey.COMPLIANCE_ENABLED) is True
+    assert reg.should_initialize(FlagKey.INPUT_FILTER_PROMPT_INJECTION) is True
     client.close()
 
 
@@ -137,7 +137,10 @@ def test_should_initialize_falls_back_to_default_if_not_evaluated() -> None:
     client = LaunchDarklyClient(settings=settings)
     reg = SubsystemRegistry(client)
     # No evaluate() call — should_initialize returns the hard default.
-    assert reg.should_initialize(FlagKey.COMPLIANCE_ENABLED) is FLAG_DEFAULTS[FlagKey.COMPLIANCE_ENABLED]
+    assert (
+        reg.should_initialize(FlagKey.INPUT_FILTER_PROMPT_INJECTION)
+        is FLAG_DEFAULTS[FlagKey.INPUT_FILTER_PROMPT_INJECTION]
+    )
 
 
 def test_registry_context_carries_deployed_subsystems() -> None:
