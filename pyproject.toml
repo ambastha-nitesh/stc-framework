@@ -80,7 +80,7 @@ where = ["src"]
 include = ["stc_framework*"]
 
 [tool.setuptools.package-data]
-stc_framework = ["spec/default_spec.yaml", "py.typed"]
+stc_framework = ["spec/default_spec.yaml", "py.typed", "compliance/data/*.yaml"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"

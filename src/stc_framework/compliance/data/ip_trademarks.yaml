@@ -1,0 +1,6 @@
+# Sample IP / trademark catalog. Populate with your organisation's
+# actual owned marks and the competitor / licensor marks you must not
+# republish without permission. Ships empty to avoid shipping legally
+# sensitive data; customers add entries in their deployment config.
+
+patterns: []
