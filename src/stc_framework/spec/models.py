@@ -6,7 +6,7 @@ that downstream code never has to ``dict.get("...")`` with silent defaults.
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -350,6 +350,211 @@ class AuditSpec(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# v0.3.0 — Compliance profile
+# ---------------------------------------------------------------------------
+
+
+class PrincipalApprovalConfig(BaseModel):
+    enabled: bool = False
+    queue_backend: Literal["memory", "store"] = "store"
+    auto_approve_below_severity: Literal["critical", "high", "medium", "low"] = "low"
+    sla_hours: int = 24
+
+
+class ComplianceRuleSpec(BaseModel):
+    """A single compliance rule's activation state + thresholds."""
+
+    model_config = ConfigDict(extra="allow")
+
+    name: str
+    enabled: bool = True
+    severity: Literal["critical", "high", "medium", "low"] = "high"
+    threshold: float | None = None
+    patterns_file: str | None = None
+
+
+class CompliancePolicySpec(BaseModel):
+    """Top-level compliance configuration.
+
+    References the rule catalog. Individual engines read their
+    entry via ``rule_by_name``.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    rules: list[ComplianceRuleSpec] = Field(default_factory=list)
+    principal_approval: PrincipalApprovalConfig = Field(default_factory=PrincipalApprovalConfig)
+    legal_hold_enabled: bool = True
+    consent_required_for_tiers: list[str] = Field(default_factory=lambda: ["restricted"])
+
+    def rule_by_name(self, name: str) -> ComplianceRuleSpec | None:
+        return next((r for r in self.rules if r.name == name), None)
+
+
+# ---------------------------------------------------------------------------
+# v0.3.0 — Sovereignty
+# ---------------------------------------------------------------------------
+
+
+class StateLawProfile(BaseModel):
+    state: str
+    law_name: str
+    effective_date: str = ""
+    key_requirements: list[str] = Field(default_factory=list)
+
+
+class SovereigntySpec(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    allowed_origin_risks: list[Literal["trusted", "cautious", "restricted", "sanctioned"]] = Field(
+        default_factory=lambda: cast(
+            list[Literal["trusted", "cautious", "restricted", "sanctioned"]],
+            ["trusted", "cautious"],
+        )
+    )
+    require_fips_for_restricted: bool = True
+    allowed_inference_jurisdictions: list[str] = Field(default_factory=lambda: ["US"])
+    state_profiles: list[StateLawProfile] = Field(default_factory=list)
+    model_origins_file: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# v0.3.0 — Risk appetite
+# ---------------------------------------------------------------------------
+
+
+class KRIDefinitionSpec(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    kri_id: str
+    name: str
+    direction: Literal["higher_is_worse", "lower_is_worse"] = "higher_is_worse"
+    amber_threshold: float
+    red_threshold: float
+    linked_risks: list[str] = Field(default_factory=list)
+
+
+class RiskAppetiteSpec(BaseModel):
+    """Five-by-five rating thresholds plus per-decision weighting."""
+
+    model_config = ConfigDict(extra="allow")
+
+    max_acceptable_rating: Literal["low", "medium", "high", "critical"] = "high"
+    decision_weights: dict[str, float] = Field(default_factory=lambda: {"accuracy": 0.4, "cost": 0.2, "risk": 0.4})
+    kris: list[KRIDefinitionSpec] = Field(default_factory=list)
+    veto_on_kri_red: bool = True
+    max_vendor_share: float = 0.75  # single vendor at most 75% of traffic
+
+
+# ---------------------------------------------------------------------------
+# v0.3.0 — Orchestration
+# ---------------------------------------------------------------------------
+
+
+class StalwartRegistryEntry(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    stalwart_id: str
+    type_name: str = "generic"
+    capabilities: list[str] = Field(default_factory=list)
+    tools: list[str] = Field(default_factory=list)
+    model_id: str | None = None
+    prompt_template: str | None = None
+    cost_weight: float = 1.0
+
+
+class OrchestrationSpec(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    enabled: bool = False
+    stalwart_registry: list[StalwartRegistryEntry] = Field(default_factory=list)
+    max_workflow_cost_usd: float = 5.00
+    max_tasks_per_workflow: int = 20
+    checkpointing: bool = True
+    langgraph_required: bool = False
+
+
+# ---------------------------------------------------------------------------
+# v0.3.0 — Threat detection
+# ---------------------------------------------------------------------------
+
+
+class RateLimitSpec(BaseModel):
+    per_minute: int = 60
+    per_hour: int = 1000
+    cost_exhaustion_usd_per_minute: float = 5.0
+
+
+class BehavioralThresholdsSpec(BaseModel):
+    firewall_block_rate_red: float = 0.5
+    critic_failure_rate_red: float = 0.3
+    session_query_count_extraction: int = 30
+
+
+class DeceptionSpec(BaseModel):
+    honey_docs: list[str] = Field(default_factory=list)
+    honey_tokens: list[str] = Field(default_factory=list)
+    canary_queries: list[str] = Field(default_factory=list)
+
+
+class ThreatDetectionSpec(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    enabled: bool = False
+    rate_limits: RateLimitSpec = Field(default_factory=RateLimitSpec)
+    behavioral: BehavioralThresholdsSpec = Field(default_factory=BehavioralThresholdsSpec)
+    deception: DeceptionSpec = Field(default_factory=DeceptionSpec)
+    ip_block_duration_seconds: int = 900
+
+
+# ---------------------------------------------------------------------------
+# v0.3.0 — Session state
+# ---------------------------------------------------------------------------
+
+
+class SessionStateSpec(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    enabled: bool = False
+    backend: Literal["memory", "redis"] = "memory"
+    redis_url: str | None = None
+    default_ttl_seconds: int = 3600
+    key_namespace: str = "session"
+
+
+# ---------------------------------------------------------------------------
+# v0.3.0 — Performance SLOs
+# ---------------------------------------------------------------------------
+
+
+class SLOSpec(BaseModel):
+    name: str
+    sli_description: str = ""
+    target: float
+    unit: str = "ms"
+    measurement: str = "p95"
+    error_budget_period_days: int = 30
+
+
+class LoadProfileSpec(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    name: Literal["baseline", "peak", "stress", "soak"] = "baseline"
+    rps: float = 10.0
+    duration_seconds: int = 60
+    ramp_seconds: int = 10
+
+
+class PerfSpec(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    enabled: bool = False
+    slos: list[SLOSpec] = Field(default_factory=list)
+    load_profiles: list[LoadProfileSpec] = Field(default_factory=list)
+    regression_threshold_percent: float = 10.0
+
+
+# ---------------------------------------------------------------------------
 # Top-level spec
 # ---------------------------------------------------------------------------
 
@@ -373,6 +578,15 @@ class STCSpec(BaseModel):
     audit: AuditSpec = Field(default_factory=AuditSpec)
     risk_taxonomy: dict[str, Any] = Field(default_factory=dict)
     compliance: dict[str, Any] = Field(default_factory=dict)
+
+    # v0.3.0 optional sections — each one is disabled until populated.
+    compliance_profile: CompliancePolicySpec = Field(default_factory=CompliancePolicySpec)
+    sovereignty: SovereigntySpec = Field(default_factory=SovereigntySpec)
+    risk_appetite: RiskAppetiteSpec = Field(default_factory=RiskAppetiteSpec)
+    orchestration: OrchestrationSpec = Field(default_factory=OrchestrationSpec)
+    threat_detection: ThreatDetectionSpec = Field(default_factory=ThreatDetectionSpec)
+    session_state: SessionStateSpec = Field(default_factory=SessionStateSpec)
+    perf: PerfSpec = Field(default_factory=PerfSpec)
 
     # -- Convenience helpers used across the codebase ---------------------
 

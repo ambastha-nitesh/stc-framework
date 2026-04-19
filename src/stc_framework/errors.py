@@ -228,6 +228,158 @@ class PromptRegistryError(STCError):
 
 
 # ---------------------------------------------------------------------------
+# Compliance (v0.3.0)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ComplianceViolation(STCError):
+    """A compliance rule evaluation blocked the operation."""
+
+    rule: str = ""
+    retryable: bool = False
+
+
+@dataclass
+class FINRARuleViolation(ComplianceViolation):
+    """FINRA Rule 2210 or related communication-rule violation."""
+
+
+@dataclass
+class RegBIUnsuitable(ComplianceViolation):
+    """Reg BI suitability check determined content is unsuitable for the customer."""
+
+
+@dataclass
+class DisclosureMissing(ComplianceViolation):
+    """Required regulatory disclosure is absent from the communication."""
+
+
+@dataclass
+class LegalHoldActive(ComplianceViolation):
+    """An active legal hold prohibits the destruction or modification operation."""
+
+    hold_id: str = ""
+
+
+# ---------------------------------------------------------------------------
+# Risk (v0.3.0)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class RiskAssessmentError(STCError):
+    """Generic failure during a risk evaluation."""
+
+
+@dataclass
+class KRIRedVeto(RiskAssessmentError):
+    """A Key Risk Indicator is in RED and vetoes the proposed action."""
+
+    kri_id: str = ""
+    retryable: bool = False
+
+
+@dataclass
+class RiskAppetiteBreach(RiskAssessmentError):
+    """Proposed action would breach the declared risk appetite."""
+
+    retryable: bool = False
+
+
+@dataclass
+class RiskOptimizerVeto(RiskAssessmentError):
+    """Risk-adjusted optimizer rejected every candidate decision."""
+
+    retryable: bool = False
+
+
+# ---------------------------------------------------------------------------
+# Threats (v0.3.0)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ThreatDetected(STCError):
+    """A threat-detection subsystem classified the request as hostile."""
+
+    threat_type: str = ""
+    severity: str = "high"
+    retryable: bool = False
+
+
+@dataclass
+class DDoSDetected(ThreatDetected):
+    """Edge rate-limiter or cost-exhaustion detector tripped."""
+
+
+@dataclass
+class HoneyTokenTriggered(ThreatDetected):
+    """A honey token or canary was accessed — high-confidence insider abuse."""
+
+
+@dataclass
+class BehavioralAnomalyDetected(ThreatDetected):
+    """UEBA-style behavioural analyser flagged the session."""
+
+
+# ---------------------------------------------------------------------------
+# Orchestration (v0.3.0)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class OrchestrationError(STCError):
+    """Generic failure in the multi-Stalwart workflow engine."""
+
+
+@dataclass
+class WorkflowBudgetExhausted(OrchestrationError):
+    """Workflow-level cost or token budget was consumed before completion."""
+
+    retryable: bool = False
+
+
+@dataclass
+class StalwartDispatchFailed(OrchestrationError):
+    """No registered Stalwart could satisfy a required capability tag."""
+
+    capability: str = ""
+    retryable: bool = False
+
+
+@dataclass
+class WorkflowCriticRejected(OrchestrationError):
+    """The Workflow Critic failed the aggregated multi-task output."""
+
+    retryable: bool = False
+
+
+# ---------------------------------------------------------------------------
+# Session state (v0.3.0)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class SessionStateError(STCError):
+    """Generic session-state failure."""
+
+
+@dataclass
+class SessionExpired(SessionStateError):
+    """Session TTL elapsed; caller must create a new session."""
+
+    retryable: bool = False
+
+
+@dataclass
+class SessionBackendUnavailable(SessionStateError):
+    """The pluggable session-state backend is unreachable."""
+
+    retryable: bool = True
+
+
+# ---------------------------------------------------------------------------
 # Convenience: HTTP status code mapping used by the Flask service layer.
 # ---------------------------------------------------------------------------
 
@@ -258,6 +410,31 @@ def http_status_for(error: STCError) -> int:
         RetryExhausted: 502,
         BulkheadFull: 503,
         PromptRegistryError: 500,
+        # v0.3.0 compliance
+        FINRARuleViolation: 422,
+        RegBIUnsuitable: 422,
+        DisclosureMissing: 422,
+        LegalHoldActive: 423,  # 423 Locked
+        ComplianceViolation: 422,
+        # v0.3.0 risk
+        KRIRedVeto: 503,
+        RiskAppetiteBreach: 403,
+        RiskOptimizerVeto: 503,
+        RiskAssessmentError: 500,
+        # v0.3.0 threats
+        DDoSDetected: 429,
+        HoneyTokenTriggered: 403,
+        BehavioralAnomalyDetected: 403,
+        ThreatDetected: 403,
+        # v0.3.0 orchestration
+        WorkflowBudgetExhausted: 402,
+        StalwartDispatchFailed: 503,
+        WorkflowCriticRejected: 502,
+        OrchestrationError: 500,
+        # v0.3.0 session
+        SessionExpired: 440,  # 440 Login Time-out (de-facto session expired)
+        SessionBackendUnavailable: 503,
+        SessionStateError: 500,
     }
     for cls in type(error).__mro__:
         if cls in mapping:

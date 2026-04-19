@@ -43,3 +43,52 @@ class AuditEvent(str, Enum):
     # ----- System -----------------------------------------------------------
     SYSTEM_START = "system_start"
     SYSTEM_STOP = "system_stop"
+
+    # ----- v0.3.0: Compliance -----------------------------------------------
+    COMPLIANCE_CHECK_EVALUATED = "compliance_check_evaluated"
+    COMPLIANCE_VIOLATION = "compliance_violation"
+    PRINCIPAL_APPROVAL_SUBMITTED = "principal_approval_submitted"
+    PRINCIPAL_APPROVED = "principal_approved"
+    PRINCIPAL_REJECTED = "principal_rejected"
+    DISCLOSURE_APPLIED = "disclosure_applied"
+    CONSENT_RECORDED = "consent_recorded"
+    LEGAL_HOLD_ISSUED = "legal_hold_issued"
+    LEGAL_HOLD_RELEASED = "legal_hold_released"
+    DESTRUCTION_BLOCKED_BY_HOLD = "destruction_blocked_by_hold"
+
+    # ----- v0.3.0: Risk -----------------------------------------------------
+    RISK_IDENTIFIED = "risk_identified"
+    RISK_ASSESSED = "risk_assessed"
+    RISK_TREATED = "risk_treated"
+    RISK_ESCALATED = "risk_escalated"
+    KRI_RECORDED = "kri_recorded"
+    KRI_BREACH = "kri_breach"
+    OPTIMIZER_DECISION = "optimizer_decision"
+    OPTIMIZER_VETO = "optimizer_veto"
+
+    # ----- v0.3.0: Threats --------------------------------------------------
+    THREAT_DETECTED = "threat_detected"
+    IP_BLOCKED = "ip_blocked"
+    HONEY_TOKEN_TRIGGERED = "honey_token_triggered"
+    CANARY_DRIFT = "canary_drift"
+    BEHAVIORAL_ANOMALY = "behavioral_anomaly"
+
+    # ----- v0.3.0: Orchestration --------------------------------------------
+    WORKFLOW_STARTED = "workflow_started"
+    WORKFLOW_TASK_COMPLETED = "workflow_task_completed"
+    WORKFLOW_CRITIC_VERDICT = "workflow_critic_verdict"
+    WORKFLOW_COMPLETED = "workflow_completed"
+    WORKFLOW_BUDGET_EXHAUSTED = "workflow_budget_exhausted"
+
+    # ----- v0.3.0: Catalog & lineage ----------------------------------------
+    ASSET_REGISTERED = "asset_registered"
+    ASSET_QUARANTINED = "asset_quarantined"
+    ASSET_DEPRECATED = "asset_deprecated"
+    LINEAGE_RECORDED = "lineage_recorded"
+    FRESHNESS_VIOLATION = "freshness_violation"
+
+    # ----- v0.3.0: Perf & session -------------------------------------------
+    SLO_VIOLATION = "slo_violation"
+    LOAD_TEST_COMPLETED = "load_test_completed"
+    SESSION_CREATED = "session_created"
+    SESSION_DESTROYED = "session_destroyed"
