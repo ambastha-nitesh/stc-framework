@@ -24,7 +24,7 @@ from stc_framework.errors import STCError
 __all__ = ["STCError", "STCSystem", "__version__"]
 
 
-def __getattr__(name: str):  # pragma: no cover - lazy import shim
+def __getattr__(name: str) -> object:  # pragma: no cover - lazy import shim
     # Lazy import of STCSystem so `import stc_framework` is cheap and does not
     # require optional dependencies.
     if name == "STCSystem":

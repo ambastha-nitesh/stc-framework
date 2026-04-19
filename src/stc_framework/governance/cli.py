@@ -113,9 +113,8 @@ def main(argv: list[str] | None = None) -> int:
     rt.set_defaults(func=_cmd_retention, _async=True)
 
     args = parser.parse_args(argv)
-    if args._async:
-        return asyncio.run(args.func(args))
-    return args.func(args)
+    result = asyncio.run(args.func(args)) if args._async else args.func(args)
+    return int(result)
 
 
 if __name__ == "__main__":  # pragma: no cover
