@@ -46,9 +46,7 @@ class TokenEntry:
 @runtime_checkable
 class TokenStore(Protocol):
     def get(self, token: str) -> str | None: ...
-    def set(
-        self, token: str, value: str, *, tenant_id: str | None = None
-    ) -> None: ...
+    def set(self, token: str, value: str, *, tenant_id: str | None = None) -> None: ...
     def delete(self, token: str) -> None: ...
 
     def erase_tenant(self, tenant_id: str) -> int:
@@ -70,9 +68,7 @@ class InMemoryTokenStore(TokenStore):
             entry = self._data.get(token)
             return entry.value if entry is not None else None
 
-    def set(
-        self, token: str, value: str, *, tenant_id: str | None = None
-    ) -> None:
+    def set(self, token: str, value: str, *, tenant_id: str | None = None) -> None:
         with self._lock:
             self._data[token] = TokenEntry(value=value, tenant_id=tenant_id)
 
@@ -83,18 +79,14 @@ class InMemoryTokenStore(TokenStore):
     def erase_tenant(self, tenant_id: str) -> int:
         with self._lock:
             before = len(self._data)
-            self._data = {
-                k: v for k, v in self._data.items() if v.tenant_id != tenant_id
-            }
+            self._data = {k: v for k, v in self._data.items() if v.tenant_id != tenant_id}
             return before - len(self._data)
 
     def prune_before(self, cutoff: datetime) -> int:
         cutoff_iso = cutoff.isoformat()
         with self._lock:
             before = len(self._data)
-            self._data = {
-                k: v for k, v in self._data.items() if v.created_at >= cutoff_iso
-            }
+            self._data = {k: v for k, v in self._data.items() if v.created_at >= cutoff_iso}
             return before - len(self._data)
 
 
@@ -127,9 +119,7 @@ class EncryptedFileTokenStore(TokenStore):
         try:
             key = base64.urlsafe_b64decode(raw)
         except Exception as exc:  # pragma: no cover
-            raise TokenizationError(
-                message=f"Invalid {self._key_env}: {exc}", downstream="sentinel"
-            ) from exc
+            raise TokenizationError(message=f"Invalid {self._key_env}: {exc}", downstream="sentinel") from exc
         if len(key) != 32:
             raise TokenizationError(
                 message=f"{self._key_env} must decode to 32 bytes",
@@ -152,9 +142,7 @@ class EncryptedFileTokenStore(TokenStore):
                 k: TokenEntry(
                     value=v["value"] if isinstance(v, dict) else v,
                     tenant_id=v.get("tenant_id") if isinstance(v, dict) else None,
-                    created_at=v.get("created_at", _now_iso())
-                    if isinstance(v, dict)
-                    else _now_iso(),
+                    created_at=v.get("created_at", _now_iso()) if isinstance(v, dict) else _now_iso(),
                 )
                 for k, v in payload.items()
             }
@@ -206,9 +194,7 @@ class EncryptedFileTokenStore(TokenStore):
             entry = self._data.get(token)
             return entry.value if entry is not None else None
 
-    def set(
-        self, token: str, value: str, *, tenant_id: str | None = None
-    ) -> None:
+    def set(self, token: str, value: str, *, tenant_id: str | None = None) -> None:
         with self._lock:
             self._data[token] = TokenEntry(value=value, tenant_id=tenant_id)
             self._persist()
@@ -221,9 +207,7 @@ class EncryptedFileTokenStore(TokenStore):
     def erase_tenant(self, tenant_id: str) -> int:
         with self._lock:
             before = len(self._data)
-            self._data = {
-                k: v for k, v in self._data.items() if v.tenant_id != tenant_id
-            }
+            self._data = {k: v for k, v in self._data.items() if v.tenant_id != tenant_id}
             removed = before - len(self._data)
             if removed:
                 self._persist()
@@ -233,9 +217,7 @@ class EncryptedFileTokenStore(TokenStore):
         cutoff_iso = cutoff.isoformat()
         with self._lock:
             before = len(self._data)
-            self._data = {
-                k: v for k, v in self._data.items() if v.created_at >= cutoff_iso
-            }
+            self._data = {k: v for k, v in self._data.items() if v.created_at >= cutoff_iso}
             removed = before - len(self._data)
             if removed:
                 self._persist()

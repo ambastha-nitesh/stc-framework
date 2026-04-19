@@ -82,12 +82,8 @@ class Trainer:
     def apply_routing_optimization(self) -> dict[str, list[str]]:
         return self._routing.apply()
 
-    async def publish_prompt(
-        self, *, name: str, version: str, content: str, activate: bool = True
-    ) -> None:
-        await self._prompts.publish(
-            name=name, version=version, content=content, activate=activate
-        )
+    async def publish_prompt(self, *, name: str, version: str, content: str, activate: bool = True) -> None:
+        await self._prompts.publish(name=name, version=version, content=content, activate=activate)
 
     # --------------------------- accessors --------------------------------
 

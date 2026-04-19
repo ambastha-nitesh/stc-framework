@@ -20,9 +20,7 @@ class DSARRecord:
     """Aggregated view of everything a tenant has touched in the system."""
 
     tenant_id: str
-    exported_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    exported_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     audit_records: list[dict[str, Any]] = field(default_factory=list)
     history_records: list[dict[str, Any]] = field(default_factory=list)
     vector_documents: list[dict[str, Any]] = field(default_factory=list)

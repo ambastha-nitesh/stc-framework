@@ -1,4 +1,3 @@
-
 import pytest
 
 from stc_framework.errors import SpecValidationError

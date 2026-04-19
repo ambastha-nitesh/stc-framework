@@ -64,9 +64,7 @@ class EscalationManager:
     def record_result(self, verdict: GovernanceVerdict) -> None:
         """Record a verdict and maybe escalate."""
         with self._lock:
-            critical_fails = sum(
-                1 for r in verdict.results if not r.passed and r.severity == "critical"
-            )
+            critical_fails = sum(1 for r in verdict.results if not r.passed and r.severity == "critical")
             self._window.append(
                 _WindowEntry(
                     timestamp=self._clock(),
@@ -79,9 +77,7 @@ class EscalationManager:
                 self._consecutive_failures = 0
 
             if critical_fails > 0:
-                get_metrics().guardrail_failures_total.labels(
-                    rail="__any__", severity="critical"
-                ).inc(critical_fails)
+                get_metrics().guardrail_failures_total.labels(rail="__any__", severity="critical").inc(critical_fails)
 
             self._maybe_escalate()
 
@@ -126,8 +122,5 @@ class EscalationManager:
             self._state.set(
                 target_level,
                 source="critic.escalation",
-                reason=(
-                    f"consecutive={self._consecutive_failures}, "
-                    f"window_critical={total_crit}"
-                ),
+                reason=(f"consecutive={self._consecutive_failures}, " f"window_critical={total_crit}"),
             )

@@ -23,9 +23,7 @@ class _Bucket:
 
 class RateLimitExceeded(Exception):
     def __init__(self, tenant_id: str, rate: float) -> None:
-        super().__init__(
-            f"tenant {tenant_id!r} exceeded rate limit ({rate:.2f} rps)"
-        )
+        super().__init__(f"tenant {tenant_id!r} exceeded rate limit ({rate:.2f} rps)")
         self.tenant_id = tenant_id
         self.rate = rate
 
@@ -74,9 +72,7 @@ class TenantRateLimiter:
                 self._buckets[tenant_id] = bucket
                 # Evict oldest if over capacity.
                 if len(self._buckets) > self._max_tenants:
-                    oldest = min(
-                        self._buckets, key=lambda k: self._buckets[k].last_refill
-                    )
+                    oldest = min(self._buckets, key=lambda k: self._buckets[k].last_refill)
                     self._buckets.pop(oldest, None)
             # Refill.
             elapsed = now - bucket.last_refill

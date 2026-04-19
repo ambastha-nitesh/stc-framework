@@ -39,9 +39,7 @@ class MockLLMClient(LLMClient):
         # them from the QUESTION would let a misconfigured
         # STC_LLM_ADAPTER=mock produce responses that appear grounded
         # but are actually echoing user input.
-        user_content = next(
-            (m.content for m in reversed(messages) if m.role == "user"), ""
-        )
+        user_content = next((m.content for m in reversed(messages) if m.role == "user"), "")
 
         context_block = user_content
         if "CONTEXT:" in user_content:
@@ -53,9 +51,7 @@ class MockLLMClient(LLMClient):
 
         parts: list[str] = []
         if numbers:
-            parts.append(
-                f"Based on the provided context, the relevant figure is {numbers[0]}."
-            )
+            parts.append(f"Based on the provided context, the relevant figure is {numbers[0]}.")
         else:
             parts.append("Based on the provided context, here is a grounded summary.")
 

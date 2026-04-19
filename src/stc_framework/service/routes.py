@@ -37,10 +37,7 @@ def register_routes(app: Flask, runner) -> None:
             "checked_at": report.checked_at,
             "degradation_level": report.degradation_level,
             "inflight_requests": report.inflight_requests,
-            "adapters": [
-                {"name": a.name, "ok": a.ok, "detail": a.detail}
-                for a in report.adapters
-            ],
+            "adapters": [{"name": a.name, "ok": a.ok, "detail": a.detail} for a in report.adapters],
         }
         return jsonify(payload), (200 if report.ok else 503)
 
@@ -113,16 +110,23 @@ def register_routes(app: Flask, runner) -> None:
         # malicious caller cannot dump arbitrary text into the Trainer's
         # signal metadata (which ultimately lands in audit logs).
         allowed_feedback = {
-            "thumbs_up", "thumbs_down", "positive", "negative",
-            "correct", "incorrect", "good", "bad", "yes", "no",
+            "thumbs_up",
+            "thumbs_down",
+            "positive",
+            "negative",
+            "correct",
+            "incorrect",
+            "good",
+            "bad",
+            "yes",
+            "no",
         }
         if value.lower() not in allowed_feedback:
             return (
                 jsonify(
                     {
                         "error": "BadRequest",
-                        "message": "feedback must be one of "
-                        + ", ".join(sorted(allowed_feedback)),
+                        "message": "feedback must be one of " + ", ".join(sorted(allowed_feedback)),
                     }
                 ),
                 400,
@@ -130,9 +134,7 @@ def register_routes(app: Flask, runner) -> None:
         # Defensive bounds on trace_id length — the system mints short ids.
         if len(trace_id) > 128:
             return (
-                jsonify(
-                    {"error": "BadRequest", "message": "trace_id too long"}
-                ),
+                jsonify({"error": "BadRequest", "message": "trace_id too long"}),
                 400,
             )
         system.submit_feedback(trace_id, value)

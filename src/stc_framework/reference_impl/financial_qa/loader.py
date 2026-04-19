@@ -10,9 +10,7 @@ from stc_framework.adapters.embeddings.base import EmbeddingsClient
 from stc_framework.adapters.vector_store.base import VectorRecord, VectorStore
 
 
-def _chunk_text(
-    text: str, *, chunk_chars: int = 600, overlap: int = 120
-) -> list[tuple[int, str]]:
+def _chunk_text(text: str, *, chunk_chars: int = 600, overlap: int = 120) -> list[tuple[int, str]]:
     text = re.sub(r"\s+\n", "\n", text.strip())
     chunks: list[tuple[int, str]] = []
     i = 0

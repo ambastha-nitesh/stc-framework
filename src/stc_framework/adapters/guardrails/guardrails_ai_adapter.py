@@ -19,10 +19,7 @@ class GuardrailsAIAdapter(ExternalGuardrailClient):
         try:
             import guardrails  # noqa: F401
         except ImportError as exc:  # pragma: no cover
-            raise ImportError(
-                "guardrails-ai is not installed; "
-                "`pip install stc-framework[guardrails-ai]`"
-            ) from exc
+            raise ImportError("guardrails-ai is not installed; " "`pip install stc-framework[guardrails-ai]`") from exc
         self._guards = guards
 
     async def check(self, rail_name: str, text: str, **kwargs: Any) -> GuardrailCheck:

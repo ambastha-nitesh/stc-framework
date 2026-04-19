@@ -23,9 +23,7 @@ from stc_framework.resilience.degradation import (
 
 def _guard() -> None:
     if os.getenv("STC_ENV", "").lower() == "prod":
-        raise RuntimeError(
-            "stc_framework.testing helpers are not allowed when STC_ENV=prod"
-        )
+        raise RuntimeError("stc_framework.testing helpers are not allowed when STC_ENV=prod")
 
 
 def reset_metrics(*args, **kwargs):

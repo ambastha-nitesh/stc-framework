@@ -41,15 +41,11 @@ class DefaultMCPPolicy(MCPAccessPolicy):
                 continue
             allowed = bool(rule.get("allowed", False))
             if not allowed:
-                return MCPAccessDecision(
-                    allowed=False, reason=f"denied by policy rule for {mcp_server}"
-                )
+                return MCPAccessDecision(allowed=False, reason=f"denied by policy rule for {mcp_server}")
             return MCPAccessDecision(allowed=True, reason="allowed by policy rule")
 
         if self._trusted and persona not in self._trusted:
-            return MCPAccessDecision(
-                allowed=False, reason=f"persona {persona!r} not in trusted_agents"
-            )
+            return MCPAccessDecision(allowed=False, reason=f"persona {persona!r} not in trusted_agents")
 
         tool_tier = self._tool_tiers.get(tool_name, "public")
         if _TIER_ORDER[tool_tier] < _TIER_ORDER.get(data_tier, 1):

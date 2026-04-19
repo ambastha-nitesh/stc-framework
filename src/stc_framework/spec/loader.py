@@ -19,6 +19,7 @@ _ENV_RE = re.compile(r"\$\{([A-Z0-9_]+)\}")
 def _interpolate(value: Any) -> Any:
     """Recursively replace ``${VAR}`` in string leaves with env values."""
     if isinstance(value, str):
+
         def sub(match: re.Match[str]) -> str:
             return os.getenv(match.group(1), match.group(0))
 
@@ -74,9 +75,7 @@ def validate_spec(spec: STCSpec) -> list[str]:
 
     total_weight = sum(r.weight for r in spec.trainer.optimization.reward_signals)
     if spec.trainer.optimization.reward_signals and not (0.9 <= total_weight <= 1.1):
-        warnings.append(
-            f"Reward signal weights sum to {total_weight:.2f}; expected ~1.0"
-        )
+        warnings.append(f"Reward signal weights sum to {total_weight:.2f}; expected ~1.0")
 
     triggers = spec.trainer.maintenance_triggers
     if triggers.cost_above_per_task_usd < spec.trainer.cost_thresholds.max_per_task_usd:

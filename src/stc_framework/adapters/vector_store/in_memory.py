@@ -72,8 +72,7 @@ class InMemoryVectorStore(VectorStore):
 
         scored.sort(key=lambda pair: pair[0], reverse=True)
         return [
-            RetrievedChunk(id=r.id, text=r.text, score=score, metadata=dict(r.metadata))
-            for score, r in scored[:top_k]
+            RetrievedChunk(id=r.id, text=r.text, score=score, metadata=dict(r.metadata)) for score, r in scored[:top_k]
         ]
 
     async def keyword_search(
@@ -90,10 +89,7 @@ class InMemoryVectorStore(VectorStore):
                     message=f"Unknown collection {collection!r}",
                     downstream="in_memory_vector_store",
                 )
-            records = [
-                r for r in self._collections[collection]
-                if not filters or _matches(r.metadata, filters)
-            ]
+            records = [r for r in self._collections[collection] if not filters or _matches(r.metadata, filters)]
 
         tokens = {t.lower() for t in query.split() if len(t) > 2}
         if not tokens:
@@ -110,8 +106,7 @@ class InMemoryVectorStore(VectorStore):
 
         scored.sort(key=lambda pair: pair[0], reverse=True)
         return [
-            RetrievedChunk(id=r.id, text=r.text, score=score, metadata=dict(r.metadata))
-            for score, r in scored[:top_k]
+            RetrievedChunk(id=r.id, text=r.text, score=score, metadata=dict(r.metadata)) for score, r in scored[:top_k]
         ]
 
     async def healthcheck(self) -> bool:

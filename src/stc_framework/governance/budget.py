@@ -38,22 +38,15 @@ class _DayBucket:
 class _TenantState:
     # Ordered oldest → newest; fixed at ~35 buckets so monthly windows
     # can be summed without touching dropped history.
-    buckets: deque[_DayBucket] = field(
-        default_factory=lambda: deque(maxlen=35)
-    )
+    buckets: deque[_DayBucket] = field(default_factory=lambda: deque(maxlen=35))
     last_monotonic: float = field(default_factory=time.monotonic)
 
 
 class TenantBudgetExceeded(Exception):
     """Raised when a tenant has exhausted their budget for the window."""
 
-    def __init__(
-        self, tenant_id: str, window: str, observed: float, limit: float
-    ) -> None:
-        super().__init__(
-            f"tenant {tenant_id!r} exceeded {window} budget: "
-            f"observed ${observed:.4f} > ${limit:.4f}"
-        )
+    def __init__(self, tenant_id: str, window: str, observed: float, limit: float) -> None:
+        super().__init__(f"tenant {tenant_id!r} exceeded {window} budget: " f"observed ${observed:.4f} > ${limit:.4f}")
         self.tenant_id = tenant_id
         self.window = window
         self.observed = observed
@@ -191,22 +184,14 @@ class TenantBudgetTracker:
         """Caller holds the lock."""
         if self.daily_usd is not None:
             today = _utc_today()
-            day_total = anticipated_cost + sum(
-                b.total_usd for b in state.buckets if b.day == today
-            )
+            day_total = anticipated_cost + sum(b.total_usd for b in state.buckets if b.day == today)
             if day_total > self.daily_usd:
-                raise TenantBudgetExceeded(
-                    tenant_id, "daily", day_total, self.daily_usd
-                )
+                raise TenantBudgetExceeded(tenant_id, "daily", day_total, self.daily_usd)
         if self.monthly_usd is not None:
             cutoff = _day_offset(30)
-            month_total = anticipated_cost + sum(
-                b.total_usd for b in state.buckets if b.day > cutoff
-            )
+            month_total = anticipated_cost + sum(b.total_usd for b in state.buckets if b.day > cutoff)
             if month_total > self.monthly_usd:
-                raise TenantBudgetExceeded(
-                    tenant_id, "monthly", month_total, self.monthly_usd
-                )
+                raise TenantBudgetExceeded(tenant_id, "monthly", month_total, self.monthly_usd)
 
     def observed(self, tenant_id: str, *, window: str) -> float:
         with self._lock:

@@ -81,9 +81,7 @@ class OptimizationManager:
         for r in recent:
             if not r.model_used:
                 continue
-            bucket = by_model.setdefault(
-                r.model_used, {"accuracies": [], "costs": [], "latencies": []}
-            )
+            bucket = by_model.setdefault(r.model_used, {"accuracies": [], "costs": [], "latencies": []})
             bucket["accuracies"].append(r.accuracy)
             bucket["costs"].append(r.cost_usd)
             bucket["latencies"].append(r.latency_ms)
@@ -92,9 +90,7 @@ class OptimizationManager:
         for model, stats in by_model.items():
             acc_mean = float(np.mean(stats["accuracies"])) if stats["accuracies"] else 0.0
             cost_mean = float(np.mean(stats["costs"])) if stats["costs"] else 0.0
-            lat_p95 = (
-                float(np.percentile(stats["latencies"], 95)) if stats["latencies"] else 0.0
-            )
+            lat_p95 = float(np.percentile(stats["latencies"], 95)) if stats["latencies"] else 0.0
             out[model] = {
                 "accuracy_mean": acc_mean,
                 "cost_mean": cost_mean,

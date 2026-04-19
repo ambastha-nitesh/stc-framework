@@ -175,18 +175,12 @@ class STCSystem:
         self._vectors = vector_store or InMemoryVectorStore()
         self._embeddings = embeddings or HashEmbedder()
         self._prompts = prompt_registry or self._build_default_prompts()
-        self._audit = AuditLogger(
-            audit_backend or self._build_default_audit_backend()
-        )
+        self._audit = AuditLogger(audit_backend or self._build_default_audit_backend())
 
-        self._classifier = DataClassifier(
-            spec, presidio_enabled=self._settings.presidio_enabled
-        )
+        self._classifier = DataClassifier(spec, presidio_enabled=self._settings.presidio_enabled)
         self._redactor = PIIRedactor(spec, presidio_enabled=self._settings.presidio_enabled)
         self._tokenizer = (
-            Tokenizer(InMemoryTokenStore(), reversible=True)
-            if spec.sentinel.tokenization.enabled
-            else None
+            Tokenizer(InMemoryTokenStore(), reversible=True) if spec.sentinel.tokenization.enabled else None
         )
 
         self._gateway = SentinelGateway(
@@ -217,9 +211,7 @@ class STCSystem:
             chunk_redactor=self._redactor,
         )
         self._critic = Critic(spec, redactor=self._redactor)
-        self._trainer = Trainer(
-            spec, self._gateway, self._prompts, audit=self._audit
-        )
+        self._trainer = Trainer(spec, self._gateway, self._prompts, audit=self._audit)
         self._degradation = degradation or get_degradation_state()
 
         # Enterprise readiness primitives ---------------------------------
@@ -263,9 +255,7 @@ class STCSystem:
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
-    async def astart(
-        self, *, strict_health: bool = False, health_timeout: float = 2.0
-    ) -> None:
+    async def astart(self, *, strict_health: bool = False, health_timeout: float = 2.0) -> None:
         """Start the system.
 
         When ``STCSettings.env == "prod"`` the startup also enforces the
@@ -307,9 +297,7 @@ class STCSystem:
                 spec_version=self._spec.version,
                 extra={
                     "ok": report.ok,
-                    "adapters": [
-                        {"name": a.name, "ok": a.ok} for a in report.adapters
-                    ],
+                    "adapters": [{"name": a.name, "ok": a.ok} for a in report.adapters],
                 },
             )
         )
@@ -396,8 +384,7 @@ class STCSystem:
         }:
             raise STCError(
                 message=(
-                    "STC_TOKENIZATION_STRICT must be enabled in prod so a "
-                    "missing tokenization key fails closed."
+                    "STC_TOKENIZATION_STRICT must be enabled in prod so a " "missing tokenization key fails closed."
                 ),
                 retryable=False,
             )
@@ -541,10 +528,7 @@ class STCSystem:
             raise STCError(message="query must be a string", retryable=False)
         if len(query) > limits.max_query_chars:
             raise STCError(
-                message=(
-                    f"query exceeds maximum allowed length "
-                    f"({len(query)} > {limits.max_query_chars})"
-                ),
+                message=(f"query exceeds maximum allowed length " f"({len(query)} > {limits.max_query_chars})"),
                 retryable=False,
             )
         # Strip zero-width / BiDi override characters up front so every
@@ -554,13 +538,9 @@ class STCSystem:
         # Sanitize tenant_id so later log lines cannot be forged by
         # injecting CR/LF into the header value.
         if tenant_id is not None:
-            tenant_id = sanitize_header_value(
-                tenant_id, limit=limits.max_header_value_chars
-            )
+            tenant_id = sanitize_header_value(tenant_id, limit=limits.max_header_value_chars)
         if idempotency_key is not None:
-            idempotency_key = sanitize_header_value(
-                idempotency_key, limit=limits.max_header_value_chars
-            )
+            idempotency_key = sanitize_header_value(idempotency_key, limit=limits.max_header_value_chars)
 
         # Idempotency short-circuit: if the caller supplied a key we've
         # already seen, return the cached result instead of re-charging
@@ -604,9 +584,7 @@ class STCSystem:
             else:
                 self._budget.enforce(tenant_id or "")
         except TenantBudgetExceeded as exc:
-            get_metrics().tenant_budget_rejections_total.labels(
-                tenant=tenant_label(tenant_id), window=exc.window
-            ).inc()
+            get_metrics().tenant_budget_rejections_total.labels(tenant=tenant_label(tenant_id), window=exc.window).inc()
             await self._audit.emit(
                 AuditRecord(
                     tenant_id=tenant_id,
@@ -636,39 +614,35 @@ class STCSystem:
         tracer = get_tracer(__name__)
 
         async with self._inflight.track():
-          with bind_correlation(
-            trace_id=trace_id, request_id=request_id, tenant_id=tenant_id, persona="stalwart"
-          ):
-            # Parent span for the whole query so every downstream span
-            # (gateway.completion, stalwart.run, critic.*) hangs off one
-            # trace tree.
-            with tracer.start_as_current_span("stc.aquery") as span:
-                span.set_attribute("stc.trace_id", trace_id)
-                span.set_attribute("stc.request_id", request_id)
-                span.set_attribute("stc.tenant_id", tenant_id or "")
-                span.set_attribute("stc.spec_version", self._spec.version)
+            with bind_correlation(trace_id=trace_id, request_id=request_id, tenant_id=tenant_id, persona="stalwart"):
+                # Parent span for the whole query so every downstream span
+                # (gateway.completion, stalwart.run, critic.*) hangs off one
+                # trace tree.
+                with tracer.start_as_current_span("stc.aquery") as span:
+                    span.set_attribute("stc.trace_id", trace_id)
+                    span.set_attribute("stc.request_id", request_id)
+                    span.set_attribute("stc.tenant_id", tenant_id or "")
+                    span.set_attribute("stc.spec_version", self._spec.version)
 
-                try:
-                    result = await self._run_pipeline(
-                        query=query,
-                        tenant_id=tenant_id,
-                        trace_id=trace_id,
-                        request_id=request_id,
-                        span=span,
-                    )
-                except BaseException:
-                    # Refund the budget reservation if the pipeline
-                    # exploded before settling it. Never leave a tenant
-                    # billed for a crashed request.
-                    if tenant_id and reserved > 0:
-                        self._budget.settle(
-                            tenant_id, reserved=reserved, actual=0.0
+                    try:
+                        result = await self._run_pipeline(
+                            query=query,
+                            tenant_id=tenant_id,
+                            trace_id=trace_id,
+                            request_id=request_id,
+                            span=span,
                         )
-                    raise
+                    except BaseException:
+                        # Refund the budget reservation if the pipeline
+                        # exploded before settling it. Never leave a tenant
+                        # billed for a crashed request.
+                        if tenant_id and reserved > 0:
+                            self._budget.settle(tenant_id, reserved=reserved, actual=0.0)
+                        raise
 
-                if idempotency_key:
-                    self._idempotency.put(tenant_id, idempotency_key, result)
-                return result
+                    if idempotency_key:
+                        self._idempotency.put(tenant_id, idempotency_key, result)
+                    return result
 
     async def _run_pipeline(
         self,
@@ -698,13 +672,9 @@ class STCSystem:
         # Input rails — gate before we spend any LLM budget
         t0 = time.perf_counter()
         input_verdict = await self._critic.aevaluate_input(query, trace_id=trace_id)
-        metrics.stage_latency_ms.labels(stage="input_rails").observe(
-            (time.perf_counter() - t0) * 1000
-        )
+        metrics.stage_latency_ms.labels(stage="input_rails").observe((time.perf_counter() - t0) * 1000)
         if input_verdict.action == "block":
-            await self._audit_rail_failures(
-                input_verdict, trace_id=trace_id, tenant_id=tenant_id, stage="input"
-            )
+            await self._audit_rail_failures(input_verdict, trace_id=trace_id, tenant_id=tenant_id, stage="input")
             await self._audit.emit(
                 AuditRecord(
                     trace_id=trace_id,
@@ -723,29 +693,19 @@ class STCSystem:
                     ],
                 )
             )
-            metrics.queries_total.labels(
-                persona="system", tenant=tenant_lbl, action="block_input"
-            ).inc()
+            metrics.queries_total.labels(persona="system", tenant=tenant_lbl, action="block_input").inc()
             span.set_attribute("stc.action", "block_input")
             # Refund the reservation — no LLM was actually called.
             if tenant_id:
-                reserved_cost = float(
-                    self._spec.trainer.cost_thresholds.max_per_task_usd or 0.0
-                )
+                reserved_cost = float(self._spec.trainer.cost_thresholds.max_per_task_usd or 0.0)
                 if reserved_cost > 0:
-                    self._budget.settle(
-                        tenant_id, reserved=reserved_cost, actual=0.0
-                    )
+                    self._budget.settle(tenant_id, reserved=reserved_cost, actual=0.0)
             return self._build_blocked_result(query, input_verdict, trace_id)
 
         # Stalwart (classify + retrieve + reason)
         t0 = time.perf_counter()
-        stalwart: StalwartResult = await self._stalwart.arun(
-            query, trace_id=trace_id, tenant_id=tenant_id
-        )
-        metrics.stage_latency_ms.labels(stage="stalwart").observe(
-            (time.perf_counter() - t0) * 1000
-        )
+        stalwart: StalwartResult = await self._stalwart.arun(query, trace_id=trace_id, tenant_id=tenant_id)
+        metrics.stage_latency_ms.labels(stage="stalwart").observe((time.perf_counter() - t0) * 1000)
 
         # Output rails
         t0 = time.perf_counter()
@@ -759,15 +719,11 @@ class STCSystem:
                 "data_tier": stalwart.data_tier,
             }
         )
-        metrics.stage_latency_ms.labels(stage="output_rails").observe(
-            (time.perf_counter() - t0) * 1000
-        )
+        metrics.stage_latency_ms.labels(stage="output_rails").observe((time.perf_counter() - t0) * 1000)
 
         # Audit every rail failure individually, then the overall
         # query completion event.
-        await self._audit_rail_failures(
-            verdict, trace_id=trace_id, tenant_id=tenant_id, stage="output"
-        )
+        await self._audit_rail_failures(verdict, trace_id=trace_id, tenant_id=tenant_id, stage="output")
         await self._audit.emit(
             AuditRecord(
                 trace_id=trace_id,
@@ -800,9 +756,7 @@ class STCSystem:
         # budget reflects actual cost rather than the pessimistic per-task
         # ceiling we booked up front.
         if tenant_id:
-            reserved_cost = float(
-                self._spec.trainer.cost_thresholds.max_per_task_usd or 0.0
-            )
+            reserved_cost = float(self._spec.trainer.cost_thresholds.max_per_task_usd or 0.0)
             if reserved_cost > 0:
                 self._budget.settle(
                     tenant_id,
@@ -811,9 +765,9 @@ class STCSystem:
                 )
             elif stalwart.cost_usd:
                 self._budget.record_cost(tenant_id, stalwart.cost_usd)
-            metrics.tenant_budget_usd.labels(
-                tenant=tenant_lbl, window="daily"
-            ).set(self._budget.observed(tenant_id, window="daily"))
+            metrics.tenant_budget_usd.labels(tenant=tenant_lbl, window="daily").set(
+                self._budget.observed(tenant_id, window="daily")
+            )
 
         # Trainer ingests a trace *without* raw user content so the
         # history store cannot become a secondary PII reservoir.
@@ -831,12 +785,8 @@ class STCSystem:
         }
         transition = await self._trainer.on_trace(trace_for_trainer)
 
-        metrics.queries_total.labels(
-            persona="stalwart", tenant=tenant_lbl, action=verdict.action
-        ).inc()
-        metrics.latency_ms.labels(persona="stalwart", stage="total").observe(
-            stalwart.latency_ms
-        )
+        metrics.queries_total.labels(persona="stalwart", tenant=tenant_lbl, action=verdict.action).inc()
+        metrics.latency_ms.labels(persona="stalwart", stage="total").observe(stalwart.latency_ms)
 
         span.set_attribute("stc.action", verdict.action)
         span.set_attribute("stc.model_used", stalwart.model_used)
@@ -1061,9 +1011,7 @@ class STCSystem:
         )
         return registry
 
-    def _resolve_response(
-        self, stalwart: StalwartResult, verdict: GovernanceVerdict
-    ) -> str:
+    def _resolve_response(self, stalwart: StalwartResult, verdict: GovernanceVerdict) -> str:
         with self._lock:
             if verdict.action == "pass":
                 self._stats.passed += 1
@@ -1071,8 +1019,7 @@ class STCSystem:
             if verdict.action == "warn":
                 self._stats.warnings += 1
                 return (
-                    stalwart.response
-                    + "\n\nNote: This response has been flagged for review. Please "
+                    stalwart.response + "\n\nNote: This response has been flagged for review. Please "
                     "verify critical figures against source documents."
                 )
             if verdict.action == "block":
@@ -1082,11 +1029,7 @@ class STCSystem:
                 # substrings that originated from the request, and
                 # reflecting those back to the caller is an avoidable
                 # information-disclosure risk.
-                rail_names = sorted(
-                    r.rail_name
-                    for r in verdict.results
-                    if not r.passed and r.severity == "critical"
-                )
+                rail_names = sorted(r.rail_name for r in verdict.results if not r.passed and r.severity == "critical")
                 return (
                     "I was unable to generate a verified answer to your question. "
                     f"The response was blocked by governance checks: {', '.join(rail_names)}. "
@@ -1101,19 +1044,14 @@ class STCSystem:
                         "failures. Human review is required before the system can resume."
                     )
                 if lvl == DegradationLevel.QUARANTINE:
-                    return (
-                        "This response is being held for human review before delivery."
-                    )
+                    return "This response is being held for human review before delivery."
                 return (
-                    stalwart.response
-                    + "\n\nDEGRADED MODE: this system is operating with reduced "
+                    stalwart.response + "\n\nDEGRADED MODE: this system is operating with reduced "
                     "confidence. All figures should be independently verified."
                 )
             return stalwart.response
 
-    def _build_blocked_result(
-        self, query: str, verdict: GovernanceVerdict, trace_id: str
-    ) -> QueryResult:
+    def _build_blocked_result(self, query: str, verdict: GovernanceVerdict, trace_id: str) -> QueryResult:
         with self._lock:
             self._stats.blocked += 1
         return QueryResult(

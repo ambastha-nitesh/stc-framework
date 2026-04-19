@@ -277,8 +277,7 @@ class DataSovereigntySpec(BaseModel):
         bad = [m for m in v["restricted"] if not is_local_model(m)]
         if bad:
             raise ValueError(
-                "routing_policy.restricted must only contain local/VPC models; "
-                f"found external targets: {bad}"
+                "routing_policy.restricted must only contain local/VPC models; " f"found external targets: {bad}"
             )
         return v
 
@@ -396,9 +395,7 @@ class STCSpec(BaseModel):
         index = getattr(self, "_rail_index", None)
         if index is None:
             index = {
-                rail.name: rail
-                for rail in self.critic.guardrails.input_rails
-                + self.critic.guardrails.output_rails
+                rail.name: rail for rail in self.critic.guardrails.input_rails + self.critic.guardrails.output_rails
             }
             object.__setattr__(self, "_rail_index", index)
         return index.get(name)

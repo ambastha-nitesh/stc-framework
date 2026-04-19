@@ -20,10 +20,7 @@ from stc_framework.critic.validators.base import (
 )
 
 _NUMBER_RE = re.compile(
-    r"\$[\d,.]+(?:\s*(?:billion|million|thousand|[BMK]))?"
-    r"|\d+\.\d+%"
-    r"|\d{1,3}(?:,\d{3})+"
-    r"|\d+(?:\.\d+)?",
+    r"\$[\d,.]+(?:\s*(?:billion|million|thousand|[BMK]))?" r"|\d+\.\d+%" r"|\d{1,3}(?:,\d{3})+" r"|\d+(?:\.\d+)?",
     flags=re.IGNORECASE,
 )
 

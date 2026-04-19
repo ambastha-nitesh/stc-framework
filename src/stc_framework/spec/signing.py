@@ -44,9 +44,7 @@ def _load_public_key(public_key_env: str) -> bytes | None:
     try:
         return base64.urlsafe_b64decode(raw)
     except Exception as exc:
-        raise SpecSignatureError(
-            f"{public_key_env} is not valid base64-urlsafe: {exc}"
-        ) from exc
+        raise SpecSignatureError(f"{public_key_env} is not valid base64-urlsafe: {exc}") from exc
 
 
 def sign_spec(
@@ -105,30 +103,20 @@ def verify_spec_signature(
     if not spec_path.exists():
         raise SpecSignatureError(f"spec file not found: {spec_path}")
 
-    sig_path = (
-        Path(signature_path)
-        if signature_path is not None
-        else spec_path.with_suffix(spec_path.suffix + ".sig")
-    )
+    sig_path = Path(signature_path) if signature_path is not None else spec_path.with_suffix(spec_path.suffix + ".sig")
     sig_present = sig_path.exists()
     pub_raw = _load_public_key(public_key_env)
 
     if not sig_present:
         if required:
-            raise SpecSignatureError(
-                f"signature required but {sig_path} is missing"
-            )
+            raise SpecSignatureError(f"signature required but {sig_path} is missing")
         return
     if pub_raw is None:
         if required:
-            raise SpecSignatureError(
-                f"{public_key_env} must be set to verify the spec signature"
-            )
+            raise SpecSignatureError(f"{public_key_env} must be set to verify the spec signature")
         return
     if len(pub_raw) != 32:
-        raise SpecSignatureError(
-            f"{public_key_env} must decode to 32 bytes; got {len(pub_raw)}"
-        )
+        raise SpecSignatureError(f"{public_key_env} must decode to 32 bytes; got {len(pub_raw)}")
 
     digest = spec_digest(spec_path)
     signature = sig_path.read_bytes()
@@ -136,6 +124,4 @@ def verify_spec_signature(
     try:
         Ed25519PublicKey.from_public_bytes(pub_raw).verify(signature, digest)
     except InvalidSignature as exc:
-        raise SpecSignatureError(
-            f"spec signature {sig_path} does not verify against {spec_path}"
-        ) from exc
+        raise SpecSignatureError(f"spec signature {sig_path} does not verify against {spec_path}") from exc

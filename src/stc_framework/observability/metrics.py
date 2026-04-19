@@ -52,9 +52,7 @@ def tenant_label(tenant_id: str | None) -> str:
         return "unknown"
     if tenant_id in _known_tenants:
         return tenant_id
-    if len(tenant_id) <= _TENANT_LABEL_MAX_LEN and all(
-        c.isalnum() or c in "-_" for c in tenant_id
-    ):
+    if len(tenant_id) <= _TENANT_LABEL_MAX_LEN and all(c.isalnum() or c in "-_" for c in tenant_id):
         # Short, label-safe IDs pass through — useful in dev / tests.
         return tenant_id
     digest = hashlib.sha256(tenant_id.encode("utf-8")).hexdigest()[:8]

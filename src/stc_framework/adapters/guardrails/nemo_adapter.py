@@ -18,9 +18,7 @@ class NemoGuardrailsAdapter(ExternalGuardrailClient):
         try:
             from nemoguardrails import LLMRails, RailsConfig
         except ImportError as exc:  # pragma: no cover
-            raise ImportError(
-                "nemoguardrails is not installed; `pip install stc-framework[nemo]`"
-            ) from exc
+            raise ImportError("nemoguardrails is not installed; `pip install stc-framework[nemo]`") from exc
         self._config = RailsConfig.from_path(config_path)
         self._rails = LLMRails(self._config)
 

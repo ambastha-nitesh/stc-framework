@@ -34,5 +34,3 @@ def test_composite_weighted(minimal_spec):
     signals = r.compute_all({"trace_id": "t", "retrieval_scores": [1.0]})
     score = r.composite(signals)
     assert 0.0 <= score <= 1.0
-
-

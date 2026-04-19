@@ -76,9 +76,7 @@ def main() -> None:
 
     system = STCSystem.from_spec(args.spec) if args.spec else STCSystem.from_env()
     try:
-        asyncio.run(
-            _run(system, Path(args.output) if args.output else None)
-        )
+        asyncio.run(_run(system, Path(args.output) if args.output else None))
     finally:
         asyncio.run(system.astop())
 

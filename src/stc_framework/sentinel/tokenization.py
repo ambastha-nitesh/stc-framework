@@ -105,9 +105,7 @@ class Tokenizer:
             )
         value = self._store.get(token)
         if value is None:
-            raise TokenizationError(
-                message=f"Unknown token {token}", downstream="sentinel"
-            )
+            raise TokenizationError(message=f"Unknown token {token}", downstream="sentinel")
         return value
 
     def detokenize_text(self, text: str) -> str:

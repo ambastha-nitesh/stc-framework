@@ -21,10 +21,7 @@ async def test_ungrounded_response_fails():
     v = HallucinationValidator(threshold=0.9, min_sentence_overlap=0.5)
     ctx = ValidationContext(
         query="q",
-        response=(
-            "The moon landing in 1969 was a major historical event that "
-            "changed space exploration forever."
-        ),
+        response=("The moon landing in 1969 was a major historical event that " "changed space exploration forever."),
         context="This document discusses corporate revenue for fiscal year 2024.",
     )
     r = await v.avalidate(ctx)

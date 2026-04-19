@@ -142,9 +142,7 @@ class _KeyManager:
                 except Exception as exc:  # pragma: no cover
                     raise ValueError(f"Invalid {cls._ENV}: {exc}") from exc
                 if len(key) < 16:
-                    raise ValueError(
-                        f"{cls._ENV} must decode to >= 16 bytes; got {len(key)}"
-                    )
+                    raise ValueError(f"{cls._ENV} must decode to >= 16 bytes; got {len(key)}")
                 cls._cached_key = key
                 cls._cached_key_id = "env-" + hashlib.sha256(key).hexdigest()[:8]
                 cls._is_ephemeral = False
@@ -243,9 +241,7 @@ class AuditLogger:
         from stc_framework.observability.metrics import get_metrics
 
         try:
-            get_metrics().governance_events_total.labels(
-                event_type=record.event_type
-            ).inc()
+            get_metrics().governance_events_total.labels(event_type=record.event_type).inc()
         except Exception:  # pragma: no cover
             pass
 

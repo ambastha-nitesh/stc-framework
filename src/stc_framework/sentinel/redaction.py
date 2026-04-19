@@ -88,9 +88,7 @@ class PIIRedactor:
             "EMAIL_ADDRESS": OperatorConfig("replace", {"new_value": "<EMAIL>"}),
             "PHONE_NUMBER": OperatorConfig("replace", {"new_value": "<PHONE>"}),
         }
-        anonymized = anonymizer.anonymize(
-            text=text, analyzer_results=results, operators=operators
-        )
+        anonymized = anonymizer.anonymize(text=text, analyzer_results=results, operators=operators)
 
         counts: dict[str, int] = {}
         redactions: list[dict[str, Any]] = []
@@ -109,9 +107,7 @@ class PIIRedactor:
         for etype, count in counts.items():
             metrics.redaction_events_total.labels(entity_type=etype).inc(count)
 
-        return RedactionResult(
-            text=anonymized.text, redactions=redactions, entity_counts=counts
-        )
+        return RedactionResult(text=anonymized.text, redactions=redactions, entity_counts=counts)
 
     def _redact_fallback(self, text: str) -> RedactionResult:
         redacted = text
@@ -129,9 +125,7 @@ class PIIRedactor:
                 continue
             counts[etype] = len(matches)
             for m in matches:
-                redactions.append(
-                    {"entity_type": etype, "start": m.start(), "end": m.end(), "score": 0.6}
-                )
+                redactions.append({"entity_type": etype, "start": m.start(), "end": m.end(), "score": 0.6})
             redacted = pattern.sub(f"<{etype}>", redacted)
 
         if counts:

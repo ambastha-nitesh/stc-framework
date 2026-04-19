@@ -32,9 +32,7 @@ class DataClassifier:
         self._patterns = self._collect_patterns()
         self._presidio: Any | None = None
         if presidio_enabled:
-            self._presidio = _try_build_presidio(
-                spec.sentinel.pii_redaction.custom_recognizers
-            )
+            self._presidio = _try_build_presidio(spec.sentinel.pii_redaction.custom_recognizers)
 
     def _collect_patterns(self) -> list[tuple[CustomRecognizer, re.Pattern[str] | None]]:
         patterns: list[tuple[CustomRecognizer, re.Pattern[str] | None]] = []

@@ -176,9 +176,7 @@ class JSONLAuditBackend(AuditBackend):
         with self._lock:
             for path in list(self._all_files()):
                 if self._file_is_entirely_before(path, cutoff_iso):
-                    last_pruned_hash = (
-                        self._last_hash_in_file(path) or last_pruned_hash
-                    )
+                    last_pruned_hash = self._last_hash_in_file(path) or last_pruned_hash
                     try:
                         os.remove(path)
                         removed += 1
@@ -265,9 +263,7 @@ class JSONLAuditBackend(AuditBackend):
                             record["key_id"] = _KeyManager.key_id()
                             rebuilt = AuditRecord(**record)
                             entry_hash = compute_entry_hash(rebuilt)
-                            sealed = AuditRecord(
-                                **{**record, "entry_hash": entry_hash}
-                            )
+                            sealed = AuditRecord(**{**record, "entry_hash": entry_hash})
                             new_lines.append(sealed.model_dump_json())
                             prev = entry_hash
                             kept_any = True

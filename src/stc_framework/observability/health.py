@@ -26,9 +26,7 @@ class AdapterHealth:
 @dataclass
 class HealthReport:
     ok: bool
-    checked_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    checked_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     adapters: list[AdapterHealth] = field(default_factory=list)
     degradation_level: str = "normal"
     inflight_requests: int = 0
@@ -65,16 +63,10 @@ async def probe_system(system: Any, *, timeout: float = 2.0) -> HealthReport:
         if attr is not None and hasattr(attr, "healthcheck"):
             probes.append((name, attr.healthcheck()))
 
-    adapters = (
-        await asyncio.gather(*[_probe(n, c, timeout) for n, c in probes])
-        if probes
-        else []
-    )
+    adapters = await asyncio.gather(*[_probe(n, c, timeout) for n, c in probes]) if probes else []
 
     degradation = getattr(system, "_degradation", None)
-    degradation_level = (
-        degradation.level.name.lower() if degradation is not None else "normal"
-    )
+    degradation_level = degradation.level.name.lower() if degradation is not None else "normal"
     inflight = 0
     tracker = getattr(system, "_inflight", None)
     if tracker is not None:

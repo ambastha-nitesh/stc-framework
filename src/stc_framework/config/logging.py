@@ -15,9 +15,7 @@ _PII_KEYS = {"query", "response", "content", "prompt", "user_input"}
 _configured = False
 
 
-def _drop_pii_keys(
-    _: Any, __: str, event_dict: EventDict
-) -> EventDict:  # pragma: no cover - trivial
+def _drop_pii_keys(_: Any, __: str, event_dict: EventDict) -> EventDict:  # pragma: no cover - trivial
     """Drop or redact keys likely to contain user content when log_content is off."""
     for key in list(event_dict.keys()):
         if key in _PII_KEYS:

@@ -22,9 +22,7 @@ class ProbeResult:
     passed: bool
     actual_behavior: str
     details: str
-    timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 FINANCIAL_QA_PROBES: list[AdversarialProbe] = [

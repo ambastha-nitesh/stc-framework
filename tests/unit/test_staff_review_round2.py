@@ -62,11 +62,7 @@ def _make_system(tmp_path: Path, fixture_dir: Path) -> STCSystem:
 
 async def _seed(system: STCSystem, tenant: str = "t1") -> None:
     emb = system.embeddings
-    vec = (
-        await emb.aembed_batch(
-            ["Revenue was $24,050 million. [Document: acme, Page 1]"]
-        )
-    )[0]
+    vec = (await emb.aembed_batch(["Revenue was $24,050 million. [Document: acme, Page 1]"]))[0]
     await system.vector_store.ensure_collection("financial_docs", emb.vector_size)
     await system.vector_store.upsert(
         "financial_docs",
@@ -90,9 +86,7 @@ class TestWORMBackend:
     @pytest.mark.asyncio
     async def test_write_and_iterate(self, tmp_path: Path):
         backend = WORMAuditBackend(tmp_path / "worm")
-        sealed = await backend.append(
-            AuditRecord(event_type="test_event", extra={"i": 1})
-        )
+        sealed = await backend.append(AuditRecord(event_type="test_event", extra={"i": 1}))
         assert sealed.entry_hash
         records = list(backend.iter_records())
         assert len(records) == 1
@@ -112,9 +106,7 @@ class TestWORMBackend:
     async def test_rotation_seal_preserves_chain(self, tmp_path: Path):
         backend = WORMAuditBackend(tmp_path / "worm", rotate_bytes=200)
         for i in range(20):
-            await backend.append(
-                AuditRecord(event_type="test_event", extra={"i": i})
-            )
+            await backend.append(AuditRecord(event_type="test_event", extra={"i": i}))
         ok, _, why = verify_chain(backend.iter_records())
         assert ok, why
         # Seal events should be present if rotation happened.
@@ -130,18 +122,14 @@ class TestWORMBackend:
 
 class TestHMACChain:
     @pytest.mark.asyncio
-    async def test_chain_verifies_with_correct_key(
-        self, tmp_path: Path, monkeypatch
-    ):
+    async def test_chain_verifies_with_correct_key(self, tmp_path: Path, monkeypatch):
         key = base64.urlsafe_b64encode(b"\x42" * 32).decode()
         monkeypatch.setenv("STC_AUDIT_HMAC_KEY", key)
         _KeyManager.reset_for_tests()
 
         backend = JSONLAuditBackend(tmp_path / "audit")
         for i in range(5):
-            await backend.append(
-                AuditRecord(event_type="test_event", extra={"i": i})
-            )
+            await backend.append(AuditRecord(event_type="test_event", extra={"i": i}))
         ok, count, why = verify_chain(backend.iter_records())
         assert ok, why
         assert count == 5
@@ -166,9 +154,7 @@ class TestHMACChain:
         assert "HMAC did not verify" in why
 
     @pytest.mark.asyncio
-    async def test_truncation_then_reforgery_fails_without_key(
-        self, tmp_path: Path, monkeypatch
-    ):
+    async def test_truncation_then_reforgery_fails_without_key(self, tmp_path: Path, monkeypatch):
         """The senior-review attack: attacker deletes prefix and rewrites
         new first record's prev_hash to GENESIS; recomputing entry_hash
         requires the HMAC key. Without it, verification fails.
@@ -194,9 +180,7 @@ class TestHMACChain:
 
         surviving[0]["prev_hash"] = "0" * 64
         surviving[0]["entry_hash"] = None
-        payload = json.dumps(
-            surviving[0], sort_keys=True, default=str
-        ).encode("utf-8")
+        payload = json.dumps(surviving[0], sort_keys=True, default=str).encode("utf-8")
         surviving[0]["entry_hash"] = _hashlib.sha256(payload).hexdigest()
         files[0].write_text(
             "\n".join(json.dumps(s) for s in surviving) + "\n",
@@ -221,12 +205,8 @@ class TestSpecSignature:
 
         # Generate a keypair for the test.
         priv = Ed25519PrivateKey.generate()
-        priv_b64 = base64.urlsafe_b64encode(
-            priv.private_bytes_raw()
-        ).decode()
-        pub_b64 = base64.urlsafe_b64encode(
-            priv.public_key().public_bytes_raw()
-        ).decode()
+        priv_b64 = base64.urlsafe_b64encode(priv.private_bytes_raw()).decode()
+        pub_b64 = base64.urlsafe_b64encode(priv.public_key().public_bytes_raw()).decode()
         monkeypatch.setenv("STC_SPEC_PUBLIC_KEY", pub_b64)
 
         spec = tmp_path / "spec.yaml"
@@ -244,16 +224,12 @@ class TestSpecSignature:
 
         priv = Ed25519PrivateKey.generate()
         priv_b64 = base64.urlsafe_b64encode(priv.private_bytes_raw()).decode()
-        pub_b64 = base64.urlsafe_b64encode(
-            priv.public_key().public_bytes_raw()
-        ).decode()
+        pub_b64 = base64.urlsafe_b64encode(priv.public_key().public_bytes_raw()).decode()
         monkeypatch.setenv("STC_SPEC_PUBLIC_KEY", pub_b64)
 
         spec = tmp_path / "spec.yaml"
         spec.write_text("version: '1.0.0'\nname: 'test'\n", encoding="utf-8")
-        (spec.with_suffix(".yaml.sig")).write_bytes(
-            sign_spec(spec, private_key_b64=priv_b64)
-        )
+        (spec.with_suffix(".yaml.sig")).write_bytes(sign_spec(spec, private_key_b64=priv_b64))
         # Tamper after signing.
         spec.write_text("version: '1.0.0'\nname: 'evil'\n", encoding="utf-8")
 
@@ -274,9 +250,7 @@ class TestSpecSignature:
 
 class TestStrictProdMode:
     @pytest.mark.asyncio
-    async def test_prod_refuses_without_audit_key(
-        self, tmp_path: Path, fixture_dir: Path, monkeypatch
-    ):
+    async def test_prod_refuses_without_audit_key(self, tmp_path: Path, fixture_dir: Path, monkeypatch):
         monkeypatch.delenv("STC_AUDIT_HMAC_KEY", raising=False)
         _KeyManager.reset_for_tests()
         settings = STCSettings(
@@ -298,9 +272,7 @@ class TestStrictProdMode:
         assert "STC_AUDIT_HMAC_KEY" in str(exc.value)
 
     @pytest.mark.asyncio
-    async def test_prod_refuses_mock_llm(
-        self, tmp_path: Path, fixture_dir: Path, monkeypatch
-    ):
+    async def test_prod_refuses_mock_llm(self, tmp_path: Path, fixture_dir: Path, monkeypatch):
         key = base64.urlsafe_b64encode(b"\x55" * 32).decode()
         monkeypatch.setenv("STC_AUDIT_HMAC_KEY", key)
         monkeypatch.setenv("STC_TOKENIZATION_STRICT", "1")
@@ -333,9 +305,7 @@ class TestStrictProdMode:
 
 
 class TestPerEventRetention:
-    def test_retention_policy_defaults_protect_compliance_records(
-        self, minimal_spec
-    ):
+    def test_retention_policy_defaults_protect_compliance_records(self, minimal_spec):
         policy = minimal_spec.audit.retention_policies
         assert policy.erasure >= 2190
         assert policy.dsar_export >= 2190
@@ -354,15 +324,11 @@ class TestPerEventRetention:
 
 class TestIdempotencyClearedOnErase:
     @pytest.mark.asyncio
-    async def test_erase_tenant_clears_idempotency_cache(
-        self, tmp_path: Path, fixture_dir: Path
-    ):
+    async def test_erase_tenant_clears_idempotency_cache(self, tmp_path: Path, fixture_dir: Path):
         system = _make_system(tmp_path, fixture_dir)
         await _seed(system, tenant="doomed")
         try:
-            await system.aquery(
-                "q", tenant_id="doomed", idempotency_key="k-1"
-            )
+            await system.aquery("q", tenant_id="doomed", idempotency_key="k-1")
             # Confirm the cache holds the result.
             assert system._idempotency.get("doomed", "k-1") is not None
 
@@ -381,9 +347,7 @@ class TestIdempotencyClearedOnErase:
 
 class TestRetentionChainSeal:
     @pytest.mark.asyncio
-    async def test_prune_writes_seal_and_chain_still_verifies(
-        self, tmp_path: Path, monkeypatch
-    ):
+    async def test_prune_writes_seal_and_chain_still_verifies(self, tmp_path: Path, monkeypatch):
         key = base64.urlsafe_b64encode(b"\x77" * 32).decode()
         monkeypatch.setenv("STC_AUDIT_HMAC_KEY", key)
         _KeyManager.reset_for_tests()
@@ -391,31 +355,22 @@ class TestRetentionChainSeal:
         backend = JSONLAuditBackend(tmp_path / "audit", rotate_bytes=256)
         # Write enough to force rotation into a second file.
         for i in range(50):
-            await backend.append(
-                AuditRecord(event_type="x", extra={"i": i}, action="test")
-            )
+            await backend.append(AuditRecord(event_type="x", extra={"i": i}, action="test"))
 
         # Now prune everything older than "now + 1 day" — should remove
         # some files and leave a seal in the active file.
-        future = (
-            datetime.now(timezone.utc) + timedelta(days=1)
-        ).isoformat()
+        future = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
         removed = backend.prune_before(future)
         # Prune may or may not hit files depending on timestamp; ensure
         # the backend at minimum remains usable.
         records = list(backend.iter_records())
         if removed:
-            seal_events = [
-                r for r in records
-                if r.event_type == "retention_prune_seal"
-            ]
+            seal_events = [r for r in records if r.event_type == "retention_prune_seal"]
             assert seal_events
         # After pruning, the first surviving record's prev_hash points
         # to a deleted record. Use accept_unknown_genesis for post-prune
         # verification; strict mode is tested in the HMAC suite above.
-        ok, _, why = verify_chain(
-            backend.iter_records(), accept_unknown_genesis=True
-        )
+        ok, _, why = verify_chain(backend.iter_records(), accept_unknown_genesis=True)
         assert ok, why
 
 
@@ -490,9 +445,7 @@ class TestMockLLMUsesContext:
                 ),
             ),
         ]
-        response = await mock.acompletion(
-            model="mock/test", messages=messages, timeout=5.0
-        )
+        response = await mock.acompletion(model="mock/test", messages=messages, timeout=5.0)
         # Must quote the CONTEXT number, never the QUESTION one.
         assert "$42,000" in response.content or "42,000" in response.content
         assert "$99,999" not in response.content
@@ -514,9 +467,7 @@ class TestRailByNameMemoized:
         # Cache contains every declared rail.
         names = set(minimal_spec._rail_index.keys())
         declared = {
-            r.name
-            for r in minimal_spec.critic.guardrails.input_rails
-            + minimal_spec.critic.guardrails.output_rails
+            r.name for r in minimal_spec.critic.guardrails.input_rails + minimal_spec.critic.guardrails.output_rails
         }
         assert names == declared
 
@@ -528,9 +479,7 @@ class TestRailByNameMemoized:
 
 class TestPresidioWarmup:
     @pytest.mark.asyncio
-    async def test_astart_warms_redactor_without_error(
-        self, tmp_path: Path, fixture_dir: Path
-    ):
+    async def test_astart_warms_redactor_without_error(self, tmp_path: Path, fixture_dir: Path):
         system = _make_system(tmp_path, fixture_dir)
         # Must not raise even though Presidio isn't installed in the
         # test env (redactor falls back to regex).

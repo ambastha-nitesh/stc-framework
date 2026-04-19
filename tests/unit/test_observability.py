@@ -106,9 +106,7 @@ def _fresh_registry() -> CollectorRegistry:
 
 class TestMetricsExist:
     @pytest.mark.asyncio
-    async def test_query_increments_queries_total(
-        self, tmp_path: Path, fixture_dir: Path
-    ):
+    async def test_query_increments_queries_total(self, tmp_path: Path, fixture_dir: Path):
         registry = _fresh_registry()
         system = _make_system(tmp_path, fixture_dir)
         await _seed(system)
@@ -121,9 +119,7 @@ class TestMetricsExist:
             await system.astop()
 
     @pytest.mark.asyncio
-    async def test_blocked_at_input_is_its_own_action_label(
-        self, tmp_path: Path, fixture_dir: Path
-    ):
+    async def test_blocked_at_input_is_its_own_action_label(self, tmp_path: Path, fixture_dir: Path):
         registry = _fresh_registry()
         system = _make_system(tmp_path, fixture_dir)
         try:
@@ -135,9 +131,7 @@ class TestMetricsExist:
             await system.astop()
 
     @pytest.mark.asyncio
-    async def test_stage_latency_is_recorded_for_every_stage(
-        self, tmp_path: Path, fixture_dir: Path
-    ):
+    async def test_stage_latency_is_recorded_for_every_stage(self, tmp_path: Path, fixture_dir: Path):
         registry = _fresh_registry()
         system = _make_system(tmp_path, fixture_dir)
         await _seed(system)
@@ -152,29 +146,21 @@ class TestMetricsExist:
             await system.astop()
 
     @pytest.mark.asyncio
-    async def test_governance_events_counter_bumps_per_audit(
-        self, tmp_path: Path, fixture_dir: Path
-    ):
+    async def test_governance_events_counter_bumps_per_audit(self, tmp_path: Path, fixture_dir: Path):
         registry = _fresh_registry()
         system = _make_system(tmp_path, fixture_dir)
         await _seed(system)
         try:
             await system.aquery("what was revenue", tenant_id="t1")
             samples = _metric_samples(registry, "stc_governance_events_total")
-            event_types = {
-                s["labels"].get("event_type")
-                for s in samples
-                if s["name"] == "stc_governance_events_total"
-            }
+            event_types = {s["labels"].get("event_type") for s in samples if s["name"] == "stc_governance_events_total"}
             assert AuditEvent.QUERY_ACCEPTED.value in event_types
             assert AuditEvent.QUERY_COMPLETED.value in event_types
         finally:
             await system.astop()
 
     @pytest.mark.asyncio
-    async def test_inflight_gauge_returns_to_zero(
-        self, tmp_path: Path, fixture_dir: Path
-    ):
+    async def test_inflight_gauge_returns_to_zero(self, tmp_path: Path, fixture_dir: Path):
         registry = _fresh_registry()
         system = _make_system(tmp_path, fixture_dir)
         await _seed(system)
@@ -234,9 +220,7 @@ class TestTenantLabelCardinality:
 
 class TestCorrelationBinding:
     @pytest.mark.asyncio
-    async def test_correlation_fields_bound_during_query(
-        self, tmp_path: Path, fixture_dir: Path
-    ):
+    async def test_correlation_fields_bound_during_query(self, tmp_path: Path, fixture_dir: Path):
         system = _make_system(tmp_path, fixture_dir)
         await _seed(system)
         captured: dict[str, object] = {}
@@ -254,9 +238,7 @@ class TestCorrelationBinding:
 
             async def avalidate(self, ctx: ValidationContext):
                 captured.update(current_correlation())
-                return GuardrailResult(
-                    rail_name=self.rail_name, passed=True, action="pass"
-                )
+                return GuardrailResult(rail_name=self.rail_name, passed=True, action="pass")
 
         system.critic._rail_runner.register(Peek())
         try:
@@ -276,9 +258,7 @@ class TestCorrelationBinding:
 
 class TestHealthProbe:
     @pytest.mark.asyncio
-    async def test_health_probe_reports_each_adapter(
-        self, tmp_path: Path, fixture_dir: Path
-    ):
+    async def test_health_probe_reports_each_adapter(self, tmp_path: Path, fixture_dir: Path):
         system = _make_system(tmp_path, fixture_dir)
         try:
             report = await system.ahealth_probe()
@@ -289,9 +269,7 @@ class TestHealthProbe:
             await system.astop()
 
     @pytest.mark.asyncio
-    async def test_unhealthy_adapter_flags_report(
-        self, tmp_path: Path, fixture_dir: Path
-    ):
+    async def test_unhealthy_adapter_flags_report(self, tmp_path: Path, fixture_dir: Path):
         system = _make_system(tmp_path, fixture_dir)
 
         async def broken_healthcheck():

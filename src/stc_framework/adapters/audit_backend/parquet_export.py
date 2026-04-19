@@ -20,9 +20,7 @@ def export_jsonl_to_parquet(source_dir: str | Path, output_dir: str | Path) -> P
         import pyarrow as pa
         import pyarrow.parquet as pq
     except ImportError as exc:  # pragma: no cover - optional
-        raise ImportError(
-            "pyarrow is not installed; `pip install stc-framework[parquet]`"
-        ) from exc
+        raise ImportError("pyarrow is not installed; `pip install stc-framework[parquet]`") from exc
 
     src = Path(source_dir)
     dst = Path(output_dir)

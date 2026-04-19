@@ -18,9 +18,7 @@ from stc_framework.spec.models import STCSpec
 RewardSignalFn = Callable[[dict[str, Any]], "RewardSignal"]
 
 
-_NUMBER_RE = re.compile(
-    r"\$[\d,.]+[BMK]?|\d+\.\d+%|\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?"
-)
+_NUMBER_RE = re.compile(r"\$[\d,.]+[BMK]?|\d+\.\d+%|\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?")
 
 
 def _iso() -> str:
@@ -114,9 +112,7 @@ class RewardComputer:
                     )
                 )
         if include_user_feedback:
-            signals.append(
-                self.compute_user_feedback(trace.get("trace_id", ""), include_user_feedback)
-            )
+            signals.append(self.compute_user_feedback(trace.get("trace_id", ""), include_user_feedback))
         return signals
 
     def composite(self, signals: list[RewardSignal]) -> float:

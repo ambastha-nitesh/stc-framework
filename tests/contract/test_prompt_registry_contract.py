@@ -7,9 +7,7 @@ from stc_framework.adapters.prompts.file_registry import FilePromptRegistry
 
 
 async def _contract(registry: PromptRegistry) -> None:
-    await registry.register(
-        PromptRecord(name="p", version="v1", content="hello", active=True)
-    )
+    await registry.register(PromptRecord(name="p", version="v1", content="hello", active=True))
     rec = await registry.get("p")
     assert rec.content == "hello"
     versions = await registry.list_versions("p")

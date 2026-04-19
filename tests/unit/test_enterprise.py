@@ -47,11 +47,7 @@ def _make_system(tmp_path: Path, fixture_dir: Path) -> STCSystem:
 
 async def _seed(system: STCSystem, tenant: str = "t1") -> None:
     emb = system.embeddings
-    vec = (
-        await emb.aembed_batch(
-            ["Revenue was $24,050 million. [Document: acme, Page 1]"]
-        )
-    )[0]
+    vec = (await emb.aembed_batch(["Revenue was $24,050 million. [Document: acme, Page 1]"]))[0]
     await system.vector_store.ensure_collection("financial_docs", emb.vector_size)
     await system.vector_store.upsert(
         "financial_docs",
@@ -107,9 +103,7 @@ class TestBudgetTracker:
 
 class TestBudgetSystemIntegration:
     @pytest.mark.asyncio
-    async def test_tenant_over_budget_is_rejected(
-        self, tmp_path: Path, fixture_dir: Path, monkeypatch
-    ):
+    async def test_tenant_over_budget_is_rejected(self, tmp_path: Path, fixture_dir: Path, monkeypatch):
         system = _make_system(tmp_path, fixture_dir)
         await _seed(system, tenant="poor")
         # Force the tenant over their daily budget.
@@ -158,9 +152,7 @@ class TestIdempotency:
         assert cache.get("t1", "") is None
 
     @pytest.mark.asyncio
-    async def test_system_idempotent_replay_returns_cached_result(
-        self, tmp_path: Path, fixture_dir: Path
-    ):
+    async def test_system_idempotent_replay_returns_cached_result(self, tmp_path: Path, fixture_dir: Path):
         system = _make_system(tmp_path, fixture_dir)
         await _seed(system, tenant="t")
         try:
@@ -180,9 +172,7 @@ class TestIdempotency:
 
 class TestGracefulShutdown:
     @pytest.mark.asyncio
-    async def test_astop_drains_inflight_before_closing(
-        self, tmp_path: Path, fixture_dir: Path
-    ):
+    async def test_astop_drains_inflight_before_closing(self, tmp_path: Path, fixture_dir: Path):
         system = _make_system(tmp_path, fixture_dir)
         await _seed(system)
         try:
@@ -196,9 +186,7 @@ class TestGracefulShutdown:
             pass
 
     @pytest.mark.asyncio
-    async def test_stopping_flag_rejects_new_requests(
-        self, tmp_path: Path, fixture_dir: Path
-    ):
+    async def test_stopping_flag_rejects_new_requests(self, tmp_path: Path, fixture_dir: Path):
         system = _make_system(tmp_path, fixture_dir)
         system._stopping = True
         with pytest.raises(STCError):
@@ -212,9 +200,7 @@ class TestGracefulShutdown:
 
 class TestStartupFailFast:
     @pytest.mark.asyncio
-    async def test_strict_health_raises_when_adapter_down(
-        self, tmp_path: Path, fixture_dir: Path
-    ):
+    async def test_strict_health_raises_when_adapter_down(self, tmp_path: Path, fixture_dir: Path):
         system = _make_system(tmp_path, fixture_dir)
 
         async def broken():
@@ -227,9 +213,7 @@ class TestStartupFailFast:
         assert "startup health" in str(exc.value).lower()
 
     @pytest.mark.asyncio
-    async def test_non_strict_mode_tolerates_unhealthy_adapter(
-        self, tmp_path: Path, fixture_dir: Path
-    ):
+    async def test_non_strict_mode_tolerates_unhealthy_adapter(self, tmp_path: Path, fixture_dir: Path):
         system = _make_system(tmp_path, fixture_dir)
 
         async def broken():

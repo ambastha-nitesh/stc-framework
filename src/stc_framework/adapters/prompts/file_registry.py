@@ -33,12 +33,8 @@ class FilePromptRegistry(PromptRegistry):
         try:
             data = json.loads(self._path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:  # pragma: no cover
-            raise PromptRegistryError(
-                message=f"Corrupt prompt registry file {self._path}: {exc}"
-            ) from exc
-        self._cache = {
-            name: [PromptRecord(**r) for r in records] for name, records in data.items()
-        }
+            raise PromptRegistryError(message=f"Corrupt prompt registry file {self._path}: {exc}") from exc
+        self._cache = {name: [PromptRecord(**r) for r in records] for name, records in data.items()}
 
     def _persist(self) -> None:
         serial: dict[str, list[dict[str, Any]]] = {}
@@ -72,9 +68,7 @@ class FilePromptRegistry(PromptRegistry):
                 for rec in bucket:
                     if rec.version == version:
                         return rec
-                raise PromptRegistryError(
-                    message=f"Prompt {name} has no version {version!r}"
-                )
+                raise PromptRegistryError(message=f"Prompt {name} has no version {version!r}")
 
         return await asyncio.to_thread(_do)
 
@@ -83,9 +77,7 @@ class FilePromptRegistry(PromptRegistry):
             with self._lock:
                 bucket = self._cache.setdefault(record.name, [])
                 if any(r.version == record.version for r in bucket):
-                    raise PromptRegistryError(
-                        message=f"Prompt {record.name} v{record.version} already registered"
-                    )
+                    raise PromptRegistryError(message=f"Prompt {record.name} v{record.version} already registered")
                 bucket.append(record)
                 if record.active:
                     for other in bucket:
@@ -101,9 +93,7 @@ class FilePromptRegistry(PromptRegistry):
                 if not bucket:
                     raise PromptRegistryError(message=f"Prompt not found: {name}")
                 if not any(r.version == version for r in bucket):
-                    raise PromptRegistryError(
-                        message=f"Prompt {name} has no version {version!r}"
-                    )
+                    raise PromptRegistryError(message=f"Prompt {name} has no version {version!r}")
                 for rec in bucket:
                     rec.active = rec.version == version
                 self._persist()

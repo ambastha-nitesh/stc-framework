@@ -72,11 +72,7 @@ async def run_adversarial_suite(
     total = len(results)
     passed = sum(1 for r in results if r.passed)
     critical = [p for p in probe_list if p.severity == "critical"]
-    critical_passed = sum(
-        1
-        for p, r in zip(probe_list, results, strict=False)
-        if p.severity == "critical" and r.passed
-    )
+    critical_passed = sum(1 for p, r in zip(probe_list, results, strict=False) if p.severity == "critical" and r.passed)
 
     return {
         "test_date": datetime.now(timezone.utc).isoformat(),
@@ -85,9 +81,7 @@ async def run_adversarial_suite(
         "passed": passed,
         "failed": total - passed,
         "pass_rate": passed / total if total else 0.0,
-        "critical_pass_rate": (
-            critical_passed / len(critical) if critical else 1.0
-        ),
+        "critical_pass_rate": (critical_passed / len(critical) if critical else 1.0),
         "results": [
             {
                 "probe_id": r.probe_id,

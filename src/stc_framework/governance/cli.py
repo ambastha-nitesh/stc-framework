@@ -54,8 +54,7 @@ async def _cmd_erase(args: argparse.Namespace) -> int:
 
     if not args.yes:
         print(
-            f"About to erase ALL records for tenant {args.tenant!r}. "
-            "Re-run with --yes to confirm.",
+            f"About to erase ALL records for tenant {args.tenant!r}. " "Re-run with --yes to confirm.",
             file=sys.stderr,
         )
         return 2

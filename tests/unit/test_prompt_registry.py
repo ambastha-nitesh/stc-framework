@@ -10,9 +10,7 @@ from stc_framework.errors import PromptRegistryError
 @pytest.mark.asyncio
 async def test_register_and_get(tmp_path: Path):
     reg = FilePromptRegistry(tmp_path / "p.json")
-    await reg.register(
-        PromptRecord(name="p1", version="v1", content="hello", active=True)
-    )
+    await reg.register(PromptRecord(name="p1", version="v1", content="hello", active=True))
     record = await reg.get("p1")
     assert record.content == "hello"
 
@@ -32,9 +30,7 @@ async def test_register_duplicate_raises(tmp_path: Path):
     reg = FilePromptRegistry(tmp_path / "p.json")
     await reg.register(PromptRecord(name="p1", version="v1", content="hello", active=True))
     with pytest.raises(PromptRegistryError):
-        await reg.register(
-            PromptRecord(name="p1", version="v1", content="dup", active=False)
-        )
+        await reg.register(PromptRecord(name="p1", version="v1", content="dup", active=False))
 
 
 @pytest.mark.asyncio

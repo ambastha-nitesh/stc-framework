@@ -63,9 +63,7 @@ def init_tracing(
                     OTLPSpanExporter,
                 )
 
-                provider.add_span_processor(
-                    BatchSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint))
-                )
+                provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint)))
             except ImportError:  # pragma: no cover - optional extra
                 # Fall back to console exporter so spans don't vanish silently.
                 provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))

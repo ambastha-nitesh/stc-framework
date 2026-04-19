@@ -69,8 +69,7 @@ INJECTION_RULES: list[_Rule] = [
     _Rule(
         "system_override",
         re.compile(
-            r"\[\s*(?:SYSTEM|ADMIN|ROOT)?\s*"
-            r"(?:OVERRIDE|ADMIN|ROOT|PROMPT|BYPASS|JAILBREAK)\s*\]",
+            r"\[\s*(?:SYSTEM|ADMIN|ROOT)?\s*" r"(?:OVERRIDE|ADMIN|ROOT|PROMPT|BYPASS|JAILBREAK)\s*\]",
             re.IGNORECASE,
         ),
     ),
@@ -116,24 +115,21 @@ INJECTION_RULES: list[_Rule] = [
     _Rule(
         "chat_markup",
         re.compile(
-            r"</?s>|\[/?INST\]|<\|im_(?:start|end)\|>|<\|endoftext\|>"
-            r"|<\|(?:system|assistant|user)\|>",
+            r"</?s>|\[/?INST\]|<\|im_(?:start|end)\|>|<\|endoftext\|>" r"|<\|(?:system|assistant|user)\|>",
             re.IGNORECASE,
         ),
     ),
     _Rule(
         "role_prefix_spoof",
         re.compile(
-            r"(?m)^\s*(?:system|assistant|user)\s*:\s*"
-            r"(?:you\s+are|ignore|override|forget)",
+            r"(?m)^\s*(?:system|assistant|user)\s*:\s*" r"(?:you\s+are|ignore|override|forget)",
             re.IGNORECASE,
         ),
     ),
     _Rule(
         "delimiter_breakout",
         re.compile(
-            r"(?:```|~~~|<!--|-->|\"\"\")\s*(?:end|/)?\s*"
-            r"(?:system|instructions?|prompt)",
+            r"(?:```|~~~|<!--|-->|\"\"\")\s*(?:end|/)?\s*" r"(?:system|instructions?|prompt)",
             re.IGNORECASE,
         ),
     ),
@@ -156,8 +152,7 @@ INJECTION_RULES: list[_Rule] = [
     _Rule(
         "override.es",
         re.compile(
-            r"\b(?:ignora|olvida|desatiende)\b[^.\n]{0,40}"
-            r"\b(?:instrucciones|reglas|anteriores|sistema)\b",
+            r"\b(?:ignora|olvida|desatiende)\b[^.\n]{0,40}" r"\b(?:instrucciones|reglas|anteriores|sistema)\b",
             re.IGNORECASE,
         ),
     ),
@@ -172,8 +167,7 @@ INJECTION_RULES: list[_Rule] = [
     _Rule(
         "override.it",
         re.compile(
-            r"\b(?:ignora|dimentica)\b[^.\n]{0,40}"
-            r"\b(?:istruzioni|regole|precedenti|sistema)\b",
+            r"\b(?:ignora|dimentica)\b[^.\n]{0,40}" r"\b(?:istruzioni|regole|precedenti|sistema)\b",
             re.IGNORECASE,
         ),
     ),
@@ -183,8 +177,7 @@ INJECTION_RULES: list[_Rule] = [
 # Verbs that, if found *decoded* inside a base64 or hex blob, signal a
 # smuggled instruction-override payload.
 _DECODED_TRIGGER_WORDS = re.compile(
-    r"\b(?:ignore|disregard|system\s+prompt|developer\s+mode|"
-    r"reveal|exfiltrate|override)\b",
+    r"\b(?:ignore|disregard|system\s+prompt|developer\s+mode|" r"reveal|exfiltrate|override)\b",
     re.IGNORECASE,
 )
 
@@ -198,9 +191,7 @@ def _decoded_injection(text: str) -> InjectionMatch | None:
     for match in _B64_RUN.finditer(text):
         blob = match.group(0)
         try:
-            decoded = base64.b64decode(blob, validate=False).decode(
-                "utf-8", errors="ignore"
-            )
+            decoded = base64.b64decode(blob, validate=False).decode("utf-8", errors="ignore")
         except Exception:
             continue
         if _DECODED_TRIGGER_WORDS.search(decoded):

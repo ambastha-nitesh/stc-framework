@@ -68,15 +68,11 @@ class Critic:
         allowed = list(scope_rail.allowed_topics) if scope_rail else []
 
         validators: dict[str, Validator] = {
-            "numerical_accuracy": NumericalAccuracyValidator(
-                tolerance_percent=tolerance or 1.0
-            ),
+            "numerical_accuracy": NumericalAccuracyValidator(tolerance_percent=tolerance or 1.0),
             "hallucination_detection": HallucinationValidator(
                 threshold=hallucination_threshold or 0.8, embeddings=embeddings
             ),
-            "investment_advice_detection": ScopeValidator(
-                prohibited_topics=prohibited, action_on_prohibited="block"
-            ),
+            "investment_advice_detection": ScopeValidator(prohibited_topics=prohibited, action_on_prohibited="block"),
             "scope_check": ScopeValidator(allowed_topics=allowed),
             "pii_output_scan": PIIOutputValidator(redactor=redactor),
             "prompt_injection_detection": PromptInjectionValidator(),
@@ -101,9 +97,7 @@ class Critic:
         # test_privacy.py::TestAuditCoverage catches the "wired but
         # never fires" case; a mismatched key surfaces as the rail
         # simply not being invoked.
-        self._rail_runner = RailRunner(
-            validators, timeout_sec=rail_timeout_sec, bulkhead_limit=rail_bulkhead
-        )
+        self._rail_runner = RailRunner(validators, timeout_sec=rail_timeout_sec, bulkhead_limit=rail_bulkhead)
         self._escalation = EscalationManager(spec.critic.escalation)
 
     def register_validator(self, validator: Validator) -> None:
@@ -153,9 +147,7 @@ class Critic:
         metrics = get_metrics()
         for r in results:
             if not r.passed:
-                metrics.guardrail_failures_total.labels(
-                    rail=r.rail_name, severity=r.severity
-                ).inc()
+                metrics.guardrail_failures_total.labels(rail=r.rail_name, severity=r.severity).inc()
 
         critical_fails = [r for r in results if not r.passed and r.severity == "critical"]
         any_fails = [r for r in results if not r.passed]

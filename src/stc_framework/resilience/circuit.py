@@ -50,9 +50,7 @@ class Circuit:
         self._fail_count = 0
         self._last_failure: float | None = None
         self._lock = RLock()
-        get_metrics().circuit_breaker_state.labels(downstream=downstream).set(
-            _state_to_gauge(self._state)
-        )
+        get_metrics().circuit_breaker_state.labels(downstream=downstream).set(_state_to_gauge(self._state))
 
     @property
     def state(self) -> str:
@@ -63,9 +61,7 @@ class Circuit:
             return
         previous = self._state
         self._state = new_state
-        get_metrics().circuit_breaker_state.labels(downstream=self.downstream).set(
-            _state_to_gauge(new_state)
-        )
+        get_metrics().circuit_breaker_state.labels(downstream=self.downstream).set(_state_to_gauge(new_state))
         _logger.warning(
             "circuit.state_change",
             downstream=self.downstream,
@@ -118,9 +114,7 @@ _circuits: dict[str, Circuit] = {}
 _lock = RLock()
 
 
-def get_circuit(
-    downstream: str, fail_max: int = 5, reset_timeout: float = 30.0
-) -> Circuit:
+def get_circuit(downstream: str, fail_max: int = 5, reset_timeout: float = 30.0) -> Circuit:
     with _lock:
         circuit = _circuits.get(downstream)
         if circuit is None:

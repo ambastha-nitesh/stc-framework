@@ -39,12 +39,8 @@ class AuditBackend(Protocol):
         Default implementation raises; backends that support retention
         must override.
         """
-        raise NotImplementedError(
-            f"{type(self).__name__} does not support retention pruning"
-        )
+        raise NotImplementedError(f"{type(self).__name__} does not support retention pruning")
 
     def erase_tenant(self, tenant_id: str) -> int:  # pragma: no cover - default
         """Delete records for ``tenant_id``. Returns count removed."""
-        raise NotImplementedError(
-            f"{type(self).__name__} does not support tenant erasure"
-        )
+        raise NotImplementedError(f"{type(self).__name__} does not support tenant erasure")

@@ -65,9 +65,7 @@ class Notifier:
         if channel == "slack_webhook":
             url = os.getenv(self._slack_env)
             if not url:
-                _logger.info(
-                    "notifier.slack_skipped", reason="env unset", message=message
-                )
+                _logger.info("notifier.slack_skipped", reason="env unset", message=message)
                 return
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
@@ -77,6 +75,4 @@ class Notifier:
             return
 
         # Default: structured log (already safe).
-        _logger.warning(
-            "notifier.alert", channel=channel, message=message, **safe_context
-        )
+        _logger.warning("notifier.alert", channel=channel, message=message, **safe_context)

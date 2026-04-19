@@ -10,9 +10,7 @@ def _verdict(critical_failures: int) -> GovernanceVerdict:
         trace_id="t",
         passed=critical_failures == 0,
         results=[
-            GuardrailResult(
-                rail_name=f"r{i}", passed=False, severity="critical", action="block"
-            )
+            GuardrailResult(rail_name=f"r{i}", passed=False, severity="critical", action="block")
             for i in range(critical_failures)
         ],
         action="block" if critical_failures else "pass",
@@ -46,9 +44,7 @@ def test_cooldown_resets_after_elapsed(minimal_spec):
         return now[0]
 
     state = DegradationState()
-    mgr = EscalationManager(
-        minimal_spec.critic.escalation, clock=clock, degradation_state=state
-    )
+    mgr = EscalationManager(minimal_spec.critic.escalation, clock=clock, degradation_state=state)
     for _ in range(3):
         mgr.record_result(_verdict(1))
     assert state.level == DegradationLevel.PAUSED

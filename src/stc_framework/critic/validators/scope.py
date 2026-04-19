@@ -95,8 +95,7 @@ class ScopeValidator(Validator):
             )
 
         if self._allowed and not any(
-            any(p.search(ctx.response) for p in _TOPIC_PATTERNS.get(topic, []))
-            for topic in self._allowed
+            any(p.search(ctx.response) for p in _TOPIC_PATTERNS.get(topic, [])) for topic in self._allowed
         ):
             return GuardrailResult(
                 rail_name=self.rail_name,

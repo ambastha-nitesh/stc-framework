@@ -32,9 +32,7 @@ def _is_transient(exc: BaseException) -> bool:
     # Network-level exceptions are transient.
     import httpx
 
-    if isinstance(
-        exc, (httpx.ConnectError, httpx.ReadTimeout, httpx.WriteTimeout, httpx.RemoteProtocolError)
-    ):
+    if isinstance(exc, (httpx.ConnectError, httpx.ReadTimeout, httpx.WriteTimeout, httpx.RemoteProtocolError)):
         return True
     # On Python 3.11+ asyncio.TimeoutError and builtins.TimeoutError were
     # unified into the same class. On 3.10 they are distinct, and socket
@@ -114,9 +112,7 @@ def retry_transient(
     def decorator(fn: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
         @wraps(fn)
         async def wrapper(*args: Any, **kwargs: Any) -> T:
-            return await with_retry(
-                lambda: fn(*args, **kwargs), downstream=downstream, max_attempts=max_attempts
-            )
+            return await with_retry(lambda: fn(*args, **kwargs), downstream=downstream, max_attempts=max_attempts)
 
         return wrapper
 

@@ -21,9 +21,7 @@ class LiteLLMAdapter(LLMClient):
         try:
             import litellm
         except ImportError as exc:  # pragma: no cover - optional
-            raise ImportError(
-                "litellm is not installed; install with `pip install stc-framework[litellm]`"
-            ) from exc
+            raise ImportError("litellm is not installed; install with `pip install stc-framework[litellm]`") from exc
         self._litellm = litellm
         if api_base:
             litellm.api_base = api_base

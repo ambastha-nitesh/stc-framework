@@ -15,11 +15,11 @@ _LOCAL_PREFIXES = (
     "local/",
     "ollama/",
     "vllm/",
-    "tgi/",          # HuggingFace Text Generation Inference
-    "bedrock/",      # Customer-VPC Bedrock is considered in-boundary
-    "sagemaker/",    # Customer-VPC SageMaker
+    "tgi/",  # HuggingFace Text Generation Inference
+    "bedrock/",  # Customer-VPC Bedrock is considered in-boundary
+    "sagemaker/",  # Customer-VPC SageMaker
     "vertex-ai-private/",
-    "mock/",         # Mock LLM is purely in-process; always in-boundary
+    "mock/",  # Mock LLM is purely in-process; always in-boundary
 )
 
 # Host fragments that also signal in-boundary deployment.

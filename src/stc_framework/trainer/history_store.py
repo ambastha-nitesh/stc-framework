@@ -63,11 +63,7 @@ class InMemoryHistoryStore(HistoryStore):
         with self._lock:
             data = list(self._buffer)
         if since is not None:
-            data = [
-                r
-                for r in data
-                if datetime.fromisoformat(r.timestamp.replace("Z", "+00:00")) >= since
-            ]
+            data = [r for r in data if datetime.fromisoformat(r.timestamp.replace("Z", "+00:00")) >= since]
         if limit is not None:
             data = data[-limit:]
         return data
@@ -118,9 +114,7 @@ class SQLiteHistoryStore(HistoryStore):
         self._path = Path(path)
         self._path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = RLock()
-        self._conn = sqlite3.connect(
-            str(self._path), check_same_thread=False, isolation_level=None
-        )
+        self._conn = sqlite3.connect(str(self._path), check_same_thread=False, isolation_level=None)
         self._conn.executescript(self._SCHEMA)
 
     def add(self, record: HistoryRecord) -> None:
@@ -203,16 +197,12 @@ class SQLiteHistoryStore(HistoryStore):
         # dedicated tenant column.
         pattern = f'%"tenant_id": "{tenant_id}"%'
         with self._lock:
-            cursor = self._conn.execute(
-                "DELETE FROM history WHERE metadata LIKE ?", (pattern,)
-            )
+            cursor = self._conn.execute("DELETE FROM history WHERE metadata LIKE ?", (pattern,))
             return cursor.rowcount or 0
 
     def prune_before(self, cutoff: datetime) -> int:
         with self._lock:
-            cursor = self._conn.execute(
-                "DELETE FROM history WHERE timestamp < ?", (cutoff.isoformat(),)
-            )
+            cursor = self._conn.execute("DELETE FROM history WHERE timestamp < ?", (cutoff.isoformat(),))
             return cursor.rowcount or 0
 
 

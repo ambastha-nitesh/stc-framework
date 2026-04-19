@@ -50,9 +50,7 @@ class AgentLightningBridge:
                 "method": "opentelemetry_sidecar",
                 "endpoint": self._spec.audit.phoenix_host,
             },
-            "optimization_targets": [
-                loop.name for loop in self._spec.trainer.optimization.optimization_loops
-            ],
+            "optimization_targets": [loop.name for loop in self._spec.trainer.optimization.optimization_loops],
         }
 
     async def process_trace(self, trace: dict[str, Any]) -> Transition:

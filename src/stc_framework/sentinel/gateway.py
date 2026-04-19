@@ -97,8 +97,7 @@ class SentinelGateway:
         if unknown:
             raise DataSovereigntyViolation(
                 message=(
-                    f"set_routing_preference({tier!r}) tried to add models "
-                    f"not declared in the spec: {unknown}"
+                    f"set_routing_preference({tier!r}) tried to add models " f"not declared in the spec: {unknown}"
                 ),
                 downstream="sentinel",
                 context={"tier": tier, "unknown_models": unknown},
@@ -107,10 +106,7 @@ class SentinelGateway:
             foreign = [m for m in ordered_models if not _is_local_model(m)]
             if foreign:
                 raise DataSovereigntyViolation(
-                    message=(
-                        "set_routing_preference('restricted') must only contain "
-                        f"local models; got: {foreign}"
-                    ),
+                    message=("set_routing_preference('restricted') must only contain " f"local models; got: {foreign}"),
                     downstream="sentinel",
                     context={"tier": tier, "foreign_models": foreign},
                 )
@@ -165,9 +161,7 @@ class SentinelGateway:
             # provides reversible surrogates for values callers may want back)
             if self._tokenizer is not None and tier == "restricted":
                 redacted_messages = [
-                    ChatMessage(role=m.role, content=self._tokenizer.tokenize(m.content))
-                    if m.role == "user"
-                    else m
+                    ChatMessage(role=m.role, content=self._tokenizer.tokenize(m.content)) if m.role == "user" else m
                     for m in redacted_messages
                 ]
 
@@ -197,10 +191,7 @@ class SentinelGateway:
                 foreign = [m for m in models if not _is_local_model(m)]
                 if foreign:
                     raise DataSovereigntyViolation(
-                        message=(
-                            "Restricted-tier routing includes external models; "
-                            "refusing to dispatch."
-                        ),
+                        message=("Restricted-tier routing includes external models; " "refusing to dispatch."),
                         downstream="sentinel",
                         context={"tier": tier, "foreign_models": foreign},
                     )
@@ -226,9 +217,9 @@ class SentinelGateway:
                                 metadata=metadata,
                             )
 
-                return await circuit.call(lambda: with_retry(
-                    _inner, downstream=f"llm:{model}", max_attempts=self._max_attempts
-                ))
+                return await circuit.call(
+                    lambda: with_retry(_inner, downstream=f"llm:{model}", max_attempts=self._max_attempts)
+                )
 
             response = await run_with_fallback(
                 lambda: _call(primary),
@@ -243,21 +234,17 @@ class SentinelGateway:
             # Step 6: audit + metrics
             crossing = tier != "restricted" and not _is_local_model(response.model)
             if crossing:
-                get_metrics().boundary_crossings_total.labels(
-                    from_tier=tier, to_model=response.model
-                ).inc()
+                get_metrics().boundary_crossings_total.labels(from_tier=tier, to_model=response.model).inc()
 
             metrics = get_metrics()
-            metrics.llm_tokens_total.labels(
-                model=response.model, direction="prompt"
-            ).inc(response.usage.prompt_tokens)
-            metrics.llm_tokens_total.labels(
-                model=response.model, direction="completion"
-            ).inc(response.usage.completion_tokens)
+            metrics.llm_tokens_total.labels(model=response.model, direction="prompt").inc(response.usage.prompt_tokens)
+            metrics.llm_tokens_total.labels(model=response.model, direction="completion").inc(
+                response.usage.completion_tokens
+            )
             if response.cost_usd:
-                metrics.cost_usd_total.labels(
-                    model=response.model, tenant=tenant_id or "unknown"
-                ).inc(response.cost_usd)
+                metrics.cost_usd_total.labels(model=response.model, tenant=tenant_id or "unknown").inc(
+                    response.cost_usd
+                )
 
             if self._audit is not None:
                 corr = current_correlation()
@@ -307,8 +294,7 @@ class SentinelGateway:
                 )
             )
         raise RuntimeError(
-            "completion() cannot be called from a running event loop; "
-            "use `await acompletion(...)` instead."
+            "completion() cannot be called from a running event loop; " "use `await acompletion(...)` instead."
         )
 
 

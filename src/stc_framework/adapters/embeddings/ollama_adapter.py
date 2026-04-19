@@ -24,9 +24,7 @@ class OllamaEmbeddings(EmbeddingsClient):
 
     async def aembed(self, text: str) -> list[float]:
         try:
-            response = await self._client.post(
-                "/api/embeddings", json={"model": self.model, "prompt": text}
-            )
+            response = await self._client.post("/api/embeddings", json={"model": self.model, "prompt": text})
             response.raise_for_status()
             payload = response.json()
             return list(payload["embedding"])

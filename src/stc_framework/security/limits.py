@@ -52,7 +52,5 @@ def enforce_string_limit(value: str, *, limit: int, name: str) -> str:
     coupling this module to the errors package.
     """
     if len(value) > limit:
-        raise ValueError(
-            f"{name} exceeds maximum allowed length ({len(value)} > {limit})"
-        )
+        raise ValueError(f"{name} exceeds maximum allowed length ({len(value)} > {limit})")
     return value

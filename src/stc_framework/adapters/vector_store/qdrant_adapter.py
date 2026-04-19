@@ -26,9 +26,7 @@ class QdrantAdapter(VectorStore):
             from qdrant_client import QdrantClient
             from qdrant_client.http.models import Distance, VectorParams
         except ImportError as exc:  # pragma: no cover - optional
-            raise ImportError(
-                "qdrant-client is not installed; `pip install stc-framework[qdrant]`"
-            ) from exc
+            raise ImportError("qdrant-client is not installed; `pip install stc-framework[qdrant]`") from exc
         self._client = QdrantClient(url=host)
         self._VectorParams = VectorParams
         self._Distance = Distance
@@ -39,9 +37,7 @@ class QdrantAdapter(VectorStore):
             if name not in existing:
                 self._client.create_collection(
                     collection_name=name,
-                    vectors_config=self._VectorParams(
-                        size=vector_size, distance=self._Distance.COSINE
-                    ),
+                    vectors_config=self._VectorParams(size=vector_size, distance=self._Distance.COSINE),
                 )
 
         await asyncio.to_thread(_do)
@@ -58,13 +54,9 @@ class QdrantAdapter(VectorStore):
             for r in records
         ]
         try:
-            await asyncio.to_thread(
-                self._client.upsert, collection_name=collection, points=points
-            )
+            await asyncio.to_thread(self._client.upsert, collection_name=collection, points=points)
         except Exception as exc:  # pragma: no cover
-            raise VectorStoreUnavailable(
-                message=str(exc), downstream="qdrant"
-            ) from exc
+            raise VectorStoreUnavailable(message=str(exc), downstream="qdrant") from exc
 
     async def search(
         self,
@@ -85,12 +77,8 @@ class QdrantAdapter(VectorStore):
             results = await asyncio.to_thread(_do)
         except Exception as exc:  # pragma: no cover
             if "not found" in str(exc).lower():
-                raise CollectionMissing(
-                    message=str(exc), downstream="qdrant"
-                ) from exc
-            raise VectorStoreUnavailable(
-                message=str(exc), downstream="qdrant"
-            ) from exc
+                raise CollectionMissing(message=str(exc), downstream="qdrant") from exc
+            raise VectorStoreUnavailable(message=str(exc), downstream="qdrant") from exc
 
         return [
             RetrievedChunk(
@@ -102,9 +90,7 @@ class QdrantAdapter(VectorStore):
             for r in results
         ]
 
-    async def keyword_search(
-        self, collection: str, query: str, *, top_k: int = 5
-    ) -> list[RetrievedChunk]:
+    async def keyword_search(self, collection: str, query: str, *, top_k: int = 5) -> list[RetrievedChunk]:
         # Qdrant doesn't have a first-class keyword index; fall back to scroll + filter.
         try:
             from qdrant_client.http.models import (
@@ -118,9 +104,7 @@ class QdrantAdapter(VectorStore):
         def _do() -> list[Any]:
             points, _ = self._client.scroll(
                 collection_name=collection,
-                scroll_filter=Filter(
-                    must=[FieldCondition(key="text", match=MatchText(text=query))]
-                ),
+                scroll_filter=Filter(must=[FieldCondition(key="text", match=MatchText(text=query))]),
                 limit=top_k,
             )
             return points

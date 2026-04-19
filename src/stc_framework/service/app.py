@@ -9,9 +9,7 @@ from typing import Any
 try:
     from flask import Flask, Response, g, request
 except ImportError as exc:  # pragma: no cover - optional extra
-    raise ImportError(
-        "Flask not installed; install with `pip install stc-framework[service]`"
-    ) from exc
+    raise ImportError("Flask not installed; install with `pip install stc-framework[service]`") from exc
 
 from stc_framework.config.logging import get_logger
 from stc_framework.observability.correlation import new_request_id
@@ -38,9 +36,7 @@ class _SystemRunner:
         self._thread = threading.Thread(target=self._run, name="stc-loop", daemon=True)
         self._thread.start()
         self._ready = threading.Event()
-        asyncio.run_coroutine_threadsafe(
-            self._startup(), self._loop
-        ).result(timeout=30)
+        asyncio.run_coroutine_threadsafe(self._startup(), self._loop).result(timeout=30)
 
     def _run(self) -> None:
         asyncio.set_event_loop(self._loop)
@@ -122,12 +118,8 @@ def create_app(
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "no-referrer")
-        response.headers.setdefault(
-            "Cache-Control", "no-store, no-cache, must-revalidate, private"
-        )
-        response.headers.setdefault(
-            "Strict-Transport-Security", "max-age=63072000; includeSubDomains"
-        )
+        response.headers.setdefault("Cache-Control", "no-store, no-cache, must-revalidate, private")
+        response.headers.setdefault("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
         return response
 
     register_error_handlers(app)

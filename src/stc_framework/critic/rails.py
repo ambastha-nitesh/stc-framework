@@ -40,9 +40,7 @@ class RailRunner:
     def register(self, validator: Validator) -> None:
         self._validators[validator.rail_name] = validator
 
-    async def run(
-        self, rails: Iterable[GuardrailRailSpec], ctx: ValidationContext
-    ) -> list[GuardrailResult]:
+    async def run(self, rails: Iterable[GuardrailRailSpec], ctx: ValidationContext) -> list[GuardrailResult]:
         results: list[GuardrailResult] = []
         for rail in rails:
             validator = self._validators.get(rail.name)
