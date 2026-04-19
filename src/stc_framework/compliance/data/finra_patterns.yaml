@@ -1,0 +1,40 @@
+# FINRA / SEC communication-content violation patterns.
+# Referenced by stc_framework.compliance.rule_2210.
+# Legal / compliance teams update this file directly — no code review
+# is required for pattern-only changes.
+
+patterns:
+  - name: guarantee
+    regex: "(?i)\\b(guarantee[ds]?|guaranteed?)\\b.*(returns?|profit|income|yield)"
+    severity: critical
+    description: "Guarantees of investment performance are prohibited."
+
+  - name: no_risk
+    regex: "(?i)\\b(no[- ]risk|risk[- ]free|without risk)\\b"
+    severity: critical
+    description: "Claims of zero risk are prohibited in investor communications."
+
+  - name: prediction_specific
+    regex: "(?i)\\b(will (grow|rise|increase|outperform) by|forecast of)\\b.*\\d+\\s*(%|percent)"
+    severity: high
+    description: "Specific numerical performance predictions require qualifiers."
+
+  - name: cherry_pick
+    regex: "(?i)\\b(best[- ]performing|top[- ]performing)\\b.*\\b(last|past)\\b"
+    severity: high
+    description: "Cherry-picking language without full-period disclosure."
+
+  - name: past_performance_omission
+    regex: "(?i)past performance"
+    severity: medium
+    description: "Past performance references trigger a required disclosure check."
+
+  - name: fdic_sipc_guarantee_implication
+    regex: "(?i)(FDIC|SIPC)[- ]?(insured|guaranteed|backed|protected).*\\b(investment|securities?|stocks?|bonds?)\\b"
+    severity: critical
+    description: "Implying FDIC/SIPC coverage for investments is prohibited."
+
+  - name: misleading_superlative
+    regex: "(?i)\\b(always|never|guaranteed to|certainly will|definitely will)\\b"
+    severity: medium
+    description: "Absolutist language in investor communications requires balance."

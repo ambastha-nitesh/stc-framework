@@ -82,6 +82,23 @@ class STCMetrics:
     adapter_healthcheck: Gauge
     system_info: Gauge
     inflight_requests: Gauge
+    # --- v0.3.0 compliance ------------------------------------------
+    compliance_checks_total: Counter
+    compliance_violations_total: Counter
+    # --- v0.3.0 risk ------------------------------------------------
+    risk_score: Gauge
+    kri_status: Gauge
+    # --- v0.3.0 threats ---------------------------------------------
+    threats_detected_total: Counter
+    ip_blocks_total: Counter
+    # --- v0.3.0 orchestration ---------------------------------------
+    workflow_duration_ms: Histogram
+    workflow_tasks_total: Counter
+    # --- v0.3.0 session & perf --------------------------------------
+    session_active: Gauge
+    session_cost_usd_total: Counter
+    slo_violations_total: Counter
+    asset_quality_score: Gauge
 
 
 _DEFAULT_BUCKETS = (5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000)
@@ -203,6 +220,78 @@ def init_metrics(registry: CollectorRegistry | None = None) -> STCMetrics:
             inflight_requests=Gauge(
                 "stc_inflight_requests",
                 "Number of queries currently being processed.",
+                registry=reg,
+            ),
+            compliance_checks_total=Counter(
+                "stc_compliance_checks_total",
+                "Compliance rule evaluations by rule and outcome.",
+                labelnames=("rule", "outcome"),
+                registry=reg,
+            ),
+            compliance_violations_total=Counter(
+                "stc_compliance_violations_total",
+                "Compliance rule violations detected.",
+                labelnames=("rule", "severity"),
+                registry=reg,
+            ),
+            risk_score=Gauge(
+                "stc_risk_score",
+                "Current composite risk score by category and tenant.",
+                labelnames=("category", "tenant"),
+                registry=reg,
+            ),
+            kri_status=Gauge(
+                "stc_kri_status",
+                "KRI status (0=green, 1=amber, 2=red).",
+                labelnames=("kri_id",),
+                registry=reg,
+            ),
+            threats_detected_total=Counter(
+                "stc_threats_detected_total",
+                "Threats detected by type and severity.",
+                labelnames=("threat_type", "severity"),
+                registry=reg,
+            ),
+            ip_blocks_total=Counter(
+                "stc_ip_blocks_total",
+                "Source IPs blocked by threat-detection.",
+                registry=reg,
+            ),
+            workflow_duration_ms=Histogram(
+                "stc_workflow_duration_ms",
+                "Multi-Stalwart workflow total duration in ms.",
+                labelnames=("workflow_type",),
+                buckets=_DEFAULT_BUCKETS,
+                registry=reg,
+            ),
+            workflow_tasks_total=Counter(
+                "stc_workflow_tasks_total",
+                "Workflow task completions by status.",
+                labelnames=("status",),
+                registry=reg,
+            ),
+            session_active=Gauge(
+                "stc_session_active",
+                "Currently active sessions by backend.",
+                labelnames=("backend",),
+                registry=reg,
+            ),
+            session_cost_usd_total=Counter(
+                "stc_session_cost_usd_total",
+                "Per-session cumulative cost by tenant.",
+                labelnames=("tenant",),
+                registry=reg,
+            ),
+            slo_violations_total=Counter(
+                "stc_slo_violations_total",
+                "SLO violations detected by perf runner.",
+                labelnames=("slo_name",),
+                registry=reg,
+            ),
+            asset_quality_score=Gauge(
+                "stc_asset_quality_score",
+                "Data-catalog quality score (0-1) by asset type.",
+                labelnames=("asset_type",),
                 registry=reg,
             ),
         )

@@ -1,41 +1,53 @@
 # experimental/
 
-**Status: not supported. Not part of v0.2.0. Do not import.**
+**Status: superseded. All code has been ported to `src/stc_framework/` in v0.3.0.**
 
-This directory holds code preserved from pre-v0.2.0 phases of the project —
-the flat-layout prototypes, early orchestration spikes, and adapter sketches
-that informed the current design under `src/stc_framework/`.
+This directory is an append-only archive. Do not import from it; do
+not build on top of it. It remains only because git history is
+load-bearing for code review and regulatory traceability.
 
-## Why it exists
+## Status summary
 
-When the repo was restructured to the packaged `src/` layout for v0.2.0, the
-earlier code wasn't deleted — it was moved here so git history stays
-continuous and we retain a record of the design exploration.
+| Module | v0.3.0 home |
+|---|---|
+| `critic/governance_engine.py` | `src/stc_framework/critic/` (split) |
+| `spec/loader.py`, `stc-spec.yaml` | `src/stc_framework/spec/` + `spec-examples/` |
+| `stalwart/financial_qa_agent.py` | `src/stc_framework/stalwart/` + `reference_impl/financial_qa/` |
+| `sentinel/*` | `src/stc_framework/sentinel/*` |
+| `trainer/optimization_manager.py` | `src/stc_framework/trainer/*` (split) |
+| `adversarial/run_red_team.py` | `src/stc_framework/adversarial/` |
+| `observability/*` | `src/stc_framework/observability/*` |
+| `reference-impl/` | `src/stc_framework/reference_impl/` |
+| `operational/retention_manager.py` | `src/stc_framework/governance/{retention,destruction}.py` |
+| `operational/cost_controls.py` | `src/stc_framework/governance/{budget_controls,anomaly}.py` |
+| `infrastructure/resilience.py` | `src/stc_framework/resilience/*` (already ported in v0.2.0) |
+| `security/pen_testing.py` | `src/stc_framework/security/pen_testing.py` |
+| `governance/data_catalog.py` | `src/stc_framework/governance/catalog.py` |
+| `governance/data_lineage.py` | `src/stc_framework/governance/lineage.py` |
+| `orchestration/workflow_engine.py` | `src/stc_framework/orchestration/{workflow,registry,simulation}.py` |
+| `regulation/rule_2210.py` | `src/stc_framework/compliance/rule_2210.py` |
+| `regulation/regulatory_ops.py` | `src/stc_framework/compliance/{reg_bi,nydfs_notification,part_500_cert}.py` |
+| `regulation/ethical_legal.py` | `src/stc_framework/compliance/{bias_fairness,ip_risk,transparency,privilege_routing,fiduciary,legal_hold,explainability}.py` |
+| `regulation/ai_sovereignty.py` | `src/stc_framework/compliance/sovereignty/{model_origin,query_pattern,state_law,jurisdiction}.py` |
+| `risk/risk_register.py` | `src/stc_framework/risk/{register,kri}.py` |
+| `risk/risk_adjusted_optimizer.py` | `src/stc_framework/risk/optimizer.py` |
+| `security/threat_detection.py` | `src/stc_framework/security/threat_detection.py` |
+| `infrastructure/perf_testing.py` | `src/stc_framework/infrastructure/perf_testing.py` |
+| `infrastructure/session_state.py` | `src/stc_framework/infrastructure/session_state.py` |
 
-## What you should know before touching anything here
+## What to do if you were relying on `experimental/`
 
-- **No tests cover this code.** The test suite under `tests/` exercises
-  `src/stc_framework/` only.
-- **No CI runs it.** Lint, type, and coverage gates exclude this tree.
-- **No compliance posture.** The AIUC-1 / SEC 17a-4 claims in the root
-  `README.md` describe the v0.2.0 package, not the code in here.
-- **Imports may be broken.** Cross-references to `spec/`, `reference_impl/`,
-  etc. may not resolve — several files were written against a flat layout
-  that no longer exists.
-- **It will not be maintained.** Dependency upgrades, security patches,
-  and bug fixes target `src/stc_framework/` only.
+1. Find the v0.3.0 home in the table above.
+2. Read the corresponding module's docstring — the public API has been
+   tightened, renamed where ambiguous, and (where appropriate) split
+   across multiple files.
+3. Update imports. The rewrites are not drop-in — they use the v0.2.0
+   primitives (audit chain, pluggable ``KeyValueStore``, async-first
+   pipeline, typed error taxonomy) that the experimental code predates.
 
-## When is it appropriate to use something from here?
+## Removal timeline
 
-- **Reference while reviewing a design decision** — git blame and the
-  original diff context are intact.
-- **Lift and port a specific idea** into the supported package, with its
-  own tests, type annotations, and documentation.
-
-Copy-pasting a file out of here into production code is not supported.
-
-## Will this directory be removed?
-
-Possibly, once enough time has passed that the history is no longer
-load-bearing for onboarding or design review. Until then, treat it as an
-append-only archive.
+This directory is slated for deletion in **v0.4.0**. Ahead of that
+release, we will verify there are no external references and no
+regression in ported behaviour. Until then the tree stays read-only
+for historical reference.

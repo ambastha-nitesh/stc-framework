@@ -306,8 +306,51 @@ environment variables (prefix `STC_`):
 | `STC_LLM_BULKHEAD` | `64` | Max concurrent LLM calls |
 | `STC_LLM_CIRCUIT_FAIL_MAX` | `5` | Failures before circuit opens |
 
+## What's new in v0.3.0 (capability completion)
+
+v0.3.0 ports every capability previously parked in `experimental/` into
+the supported `src/stc_framework/` package. All new subsystems are
+**opt-in** — none runs unless the operator wires it explicitly, so
+existing v0.2.0 deployments are unaffected.
+
+Major additions:
+
+- **Compliance** (`stc_framework.compliance`) — FINRA Rule 2210, Reg BI
+  suitability, NYDFS 72-hour notification, Part 500 certification, EEOC
+  bias & fairness monitor, IP risk scanner, AI transparency + consent,
+  attorney-client privilege routing, fiduciary fairness, legal hold
+  manager, explainability narrator, AI sovereignty (model origin, state
+  AI law matrix, inference jurisdiction enforcer).
+- **Risk** (`stc_framework.risk`) — ISO 31000 risk register (5×5
+  matrix, full lifecycle), 12-indicator KRI engine with auto-escalation,
+  risk-adjusted optimizer with four veto evaluators.
+- **Security** (`stc_framework.security`) — threat detection
+  (DDoS, behavioural UEBA, deception), MITRE ATLAS + OWASP LLM Top 10
+  pen-test runner.
+- **Orchestration** (`stc_framework.orchestration`) — multi-Stalwart
+  workflow engine with capability-tag dispatch, budget cap, and an
+  async state lock ready for parallel fan-out.
+- **Infrastructure** (`stc_framework.infrastructure`) — pluggable
+  `KeyValueStore`, session manager with atomic micro-dollar cost
+  counters, SLO-aware performance testing.
+- **Governance extensions** — data catalog (6-dim quality scoring),
+  lineage with impact analysis, DoD-style secure destruction,
+  token/burst/cost circuit breakers, rolling-mean anomaly detection.
+
+Every subsystem routes persistent state through one `KeyValueStore`
+Protocol; a Redis backend ships in v0.3.1.
+
+See [`docs/v030_integration.md`](docs/v030_integration.md) for
+integration recipes (enable FINRA enforcement, wire a risk optimizer,
+register a honey token, record end-to-end lineage, block destruction
+during litigation, run a load test). The staff-engineer code review of
+this release, with tiered findings and fixes, is in
+[`docs/security/V030_STAFF_REVIEW.md`](docs/security/V030_STAFF_REVIEW.md).
+
 ## Documentation
 
+- [v0.3.0 integration guide](docs/v030_integration.md)
+- [v0.3.0 staff review](docs/security/V030_STAFF_REVIEW.md)
 - [Architecture](docs/architecture/README.md)
 - [Operations](docs/operations/) — deployment, observability, resilience, scaling, multitenancy
 - [Reference Implementation: Financial Q&A](src/stc_framework/reference_impl/financial_qa/)
