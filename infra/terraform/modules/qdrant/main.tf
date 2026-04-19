@@ -48,7 +48,7 @@ resource "aws_ecs_task_definition" "qdrant" {
   container_definitions = jsonencode([
     {
       name         = "qdrant"
-      image        = "${var.ecr_repo_url}:${var.image_tag}"
+      image        = "${var.image}:${var.image_tag}"
       essential    = true
       portMappings = [
         { containerPort = local.port_rest, hostPort = local.port_rest, protocol = "tcp" },

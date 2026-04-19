@@ -15,6 +15,10 @@ output "secret_arns" { value = module.secrets.secret_arns }
 
 output "rds_endpoint" { value = module.rds.cluster_endpoint }
 output "rds_reader_endpoint" { value = module.rds.cluster_reader_endpoint }
+output "rds_master_user_secret_arn" {
+  value       = module.rds.master_user_secret_arn
+  description = "Secrets Manager ARN of the AWS-managed Aurora master credentials."
+}
 
 output "redis_primary_endpoint" { value = module.elasticache.primary_endpoint }
 

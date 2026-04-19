@@ -126,10 +126,20 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.5
+      - name: Compute backend config
+        id: backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          account_id=$(aws sts get-caller-identity --query Account --output text)
+          echo "bucket=stc-framework-tfstate-${account_id}-${AWS_REGION}" >> "$GITHUB_OUTPUT"
+          echo "table=stc-framework-tfstate-lock" >> "$GITHUB_OUTPUT"
       - name: Init
         working-directory: infra/terraform
         run: |
           terraform init -input=false \
+            -backend-config="bucket=${{ steps.backend.outputs.bucket }}" \
+            -backend-config="dynamodb_table=${{ steps.backend.outputs.table }}" \
             -backend-config="region=${AWS_REGION}"
       - name: Workspace
         working-directory: infra/terraform

@@ -1,7 +1,11 @@
-# Secrets Manager entries. Terraform creates the secret + an empty
-# initial version; real plaintext values are set out-of-band via
-# ``aws secretsmanager put-secret-value`` (documented in the deployment
-# runbook). This keeps secrets out of state files and tfvars.
+# Secrets Manager entries. Some secrets are seeded out-of-band via
+# ``aws secretsmanager put-secret-value`` (documented in the runbook);
+# others are populated by Terraform elsewhere (the elasticache module
+# writes the auth token; the root module composes redis_url). The
+# caller lists the latter in ``terraform_managed_names`` so this
+# module skips the placeholder version for them — otherwise two
+# ``aws_secretsmanager_secret_version`` resources would fight over
+# the AWSCURRENT stage.
 
 resource "aws_secretsmanager_secret" "this" {
   for_each    = var.specs
@@ -9,20 +13,26 @@ resource "aws_secretsmanager_secret" "this" {
   description = each.value
   kms_key_id  = var.kms_key_arn
 
-  # Allow recovery for 7 days in case of accidental delete in dev; prod
-  # should set higher. Aurora + ElastiCache hold references to password
-  # secrets so accidental deletion would otherwise brick them.
+  # Aurora + ElastiCache reference these secrets; keep a recovery
+  # window so an accidental delete can be un-done.
   recovery_window_in_days = var.recovery_window_days
 
   tags = { Name = "${var.name_prefix}-secret-${each.key}", purpose = each.value }
 }
 
-# Placeholder initial version. Operators overwrite via CLI/runbook;
-# ``lifecycle.ignore_changes`` prevents Terraform from clobbering the
-# real value on subsequent applies.
+locals {
+  # Secrets that should get a Terraform-written placeholder (the
+  # human-seeded ones). Secrets listed in ``terraform_managed_names``
+  # are written by another resource and must NOT have a placeholder.
+  placeholder_specs = {
+    for k, v in var.specs : k => v
+    if !contains(var.terraform_managed_names, k)
+  }
+}
+
 resource "aws_secretsmanager_secret_version" "placeholder" {
-  for_each      = aws_secretsmanager_secret.this
-  secret_id     = each.value.id
+  for_each      = local.placeholder_specs
+  secret_id     = aws_secretsmanager_secret.this[each.key].id
   secret_string = "__uninitialised__"
   lifecycle {
     ignore_changes = [secret_string, version_stages]
