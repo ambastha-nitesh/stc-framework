@@ -21,12 +21,34 @@ def _in_memory() -> KeyValueStore:
     return InMemoryStore()
 
 
-# Every implementation registers a factory here. Redis would add a
-# pytest.param(_redis, marks=pytest.mark.integration).
-_store_factories: list[StoreFactory] = [_in_memory]
+def _fake_redis() -> KeyValueStore:
+    # Skip the factory if fakeredis / the RedisStore are not importable
+    # (e.g. an image built without the ``redis`` extra). The
+    # importorskip happens at collection via pytest.param marks below.
+    import fakeredis.aioredis
+
+    from stc_framework.infrastructure.redis_store import RedisStore
+
+    return RedisStore(
+        client=fakeredis.aioredis.FakeRedis(),
+        namespace=f"stc-contract-{id(object())}",
+    )
 
 
-@pytest.fixture(params=_store_factories, ids=lambda f: f.__name__.lstrip("_"))
+_factories: list = [
+    pytest.param(_in_memory, id="in_memory"),
+    pytest.param(
+        _fake_redis,
+        id="fake_redis",
+        marks=pytest.mark.skipif(
+            __import__("importlib").util.find_spec("fakeredis") is None,
+            reason="fakeredis not installed",
+        ),
+    ),
+]
+
+
+@pytest.fixture(params=_factories)
 def make_store(request: pytest.FixtureRequest) -> StoreFactory:
     return request.param
 

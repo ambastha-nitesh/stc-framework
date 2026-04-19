@@ -26,6 +26,11 @@ from stc_framework.infrastructure.store import (
     StoreError,
 )
 
+try:  # Optional — only available if the [redis] extra is installed.
+    from stc_framework.infrastructure.redis_store import RedisStore
+except ImportError:  # pragma: no cover - optional path
+    RedisStore = None  # type: ignore[assignment, misc]
+
 __all__ = [
     "DEFAULT_PROFILES",
     "DEFAULT_SLOS",
@@ -34,6 +39,7 @@ __all__ = [
     "LoadConfig",
     "LoadProfile",
     "PerformanceTestRunner",
+    "RedisStore",
     "SLODefinition",
     "SessionManager",
     "SessionMetadata",

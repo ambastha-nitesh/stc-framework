@@ -6,6 +6,7 @@ Exposes:
 - ``stc-governance dsar <tenant>`` — export a DSAR record for ``tenant``.
 - ``stc-governance erase <tenant>`` — execute the right-to-erasure workflow.
 - ``stc-governance retention`` — run retention against the spec's ``audit.retention_days``.
+- ``stc-governance flags …`` — inspect LaunchDarkly feature-flag state.
 
 Designed to be invoked by runbooks, incident scripts, or scheduled jobs
 (cron / Kubernetes CronJob) without requiring the caller to write
@@ -112,8 +113,16 @@ def main(argv: list[str] | None = None) -> int:
     rt.add_argument("--spec", default=None)
     rt.set_defaults(func=_cmd_retention, _async=True)
 
+    # v0.3.1 — LaunchDarkly feature-flag inspection
+    from stc_framework.feature_flags.cli import add_flags_subcommand
+
+    add_flags_subcommand(sub)
+
     args = parser.parse_args(argv)
-    result = asyncio.run(args.func(args)) if args._async else args.func(args)
+    # The flags subcommand sets ``_async`` via its own add_flags_subcommand
+    # default, but we add a fallback here so older subparsers still work.
+    is_async = getattr(args, "_async", False)
+    result = asyncio.run(args.func(args)) if is_async else args.func(args)
     return int(result)
 
 

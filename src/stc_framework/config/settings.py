@@ -95,6 +95,25 @@ class STCSettings(BaseSettings):
     # -- History store ---------------------------------------------------
     history_dsn: str = Field(default="sqlite:///.stc/history.db")
 
+    # -- LaunchDarkly (v0.3.1) -------------------------------------------
+    # Runtime subsystem gating. ``ld_sdk_key_env`` names the environment
+    # variable that holds the actual SDK key — the key is NEVER placed in
+    # a config file. ``ld_relay_url`` points at a LaunchDarkly Relay
+    # Proxy in the same VPC; ``ld_offline_mode`` forces the SDK to serve
+    # only defaults (useful in tests and air-gapped smoke runs).
+    ld_sdk_key_env: str = Field(default="LD_SDK_KEY")
+    ld_relay_url: str | None = Field(default=None)
+    ld_offline_mode: bool = Field(default=False)
+    ld_cache_path: str = Field(default="/var/cache/ld/flags.json")
+    ld_startup_timeout_sec: float = Field(default=5.0)
+
+    # -- Redis-backed KeyValueStore (v0.3.1) -----------------------------
+    # When ``redis_url`` is set, budget/rate-limit/idempotency state moves
+    # from in-memory to Redis so multiple replicas share one view.
+    # TLS is mandatory when ``STC_ENV=prod`` (scheme must be ``rediss://``).
+    redis_url: str | None = Field(default=None)
+    redis_tls_ca_path: str | None = Field(default=None)
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> STCSettings:
