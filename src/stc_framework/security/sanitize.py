@@ -107,7 +107,7 @@ _LOG_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 
 
 def safe_log_value(value: str | None, *, limit: int = 512) -> str | None:
-    """Return a version of ``value`` safe to include in structured logs.
+    r"""Return a version of ``value`` safe to include in structured logs.
 
     Control characters (including newlines) are replaced so an attacker
     cannot forge additional log lines by stuffing ``\\n`` into a header.

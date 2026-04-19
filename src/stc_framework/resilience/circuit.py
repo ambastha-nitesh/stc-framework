@@ -7,11 +7,11 @@ implementation tracks state natively so it actually works for ``await``.
 
 from __future__ import annotations
 
-import asyncio
 import time
+from collections.abc import Awaitable, Callable
 from enum import Enum
 from threading import RLock
-from typing import Awaitable, Callable, TypeVar
+from typing import TypeVar
 
 from stc_framework.config.logging import get_logger
 from stc_framework.errors import CircuitBreakerOpen

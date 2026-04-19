@@ -19,10 +19,10 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+from collections.abc import Iterator
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import RLock
-from typing import Iterator
 
 from stc_framework.adapters.audit_backend.base import AuditBackend
 from stc_framework.observability.audit import (

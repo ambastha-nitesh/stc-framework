@@ -20,6 +20,7 @@ workflow can scope deletions correctly.
 from __future__ import annotations
 
 import base64
+import contextlib
 import json
 import os
 from dataclasses import dataclass, field
@@ -192,16 +193,12 @@ class EncryptedFileTokenStore(TokenStore):
             with os.fdopen(fd, "wb") as fh:
                 fh.write(nonce + ciphertext)
         except Exception:
-            try:
+            with contextlib.suppress(Exception):
                 tmp_path.unlink(missing_ok=True)
-            except Exception:
-                pass
             raise
         # chmod explicitly in case the OS ignored the open mode (Windows).
-        try:
+        with contextlib.suppress(OSError, NotImplementedError):
             os.chmod(tmp_path, 0o600)
-        except (OSError, NotImplementedError):
-            pass
         os.replace(tmp_path, self._path)
 
     def get(self, token: str) -> str | None:

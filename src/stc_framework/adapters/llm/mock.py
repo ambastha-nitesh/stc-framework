@@ -14,7 +14,6 @@ from typing import Any
 
 from stc_framework.adapters.llm.base import ChatMessage, LLMClient, LLMResponse, LLMUsage
 
-
 _NUMBER_RE = re.compile(r"\$[\d,.]+(?:\s*(?:billion|million|thousand|[BMK]))?|\d+\.\d+%|\d{1,3}(?:,\d{3})+")
 _DOC_RE = re.compile(r"\[Document:\s*([^\],]+)(?:,\s*Page\s+([^\]]+))?\]")
 

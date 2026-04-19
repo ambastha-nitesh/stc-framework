@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from stc_framework.trainer.history_store import HistoryRecord, InMemoryHistoryStore
 from stc_framework.trainer.optimizer import OptimizationManager

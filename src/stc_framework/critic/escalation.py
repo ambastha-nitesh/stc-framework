@@ -11,10 +11,10 @@ Wraps the original count-based thresholds with:
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from threading import RLock
-from typing import Callable
 
 from stc_framework.config.logging import get_logger
 from stc_framework.critic.validators.base import GovernanceVerdict
@@ -98,9 +98,7 @@ class EscalationManager:
         total_crit = sum(e.critical_failures for e in self._window)
 
         target_level: DegradationLevel = DegradationLevel.NORMAL
-        if self._consecutive_failures >= threshold:
-            target_level = DegradationLevel.PAUSED
-        elif total_crit >= 5:
+        if self._consecutive_failures >= threshold or total_crit >= 5:
             target_level = DegradationLevel.PAUSED
         elif total_crit >= 3:
             target_level = DegradationLevel.QUARANTINE

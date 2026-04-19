@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import sqlite3
 from collections import deque
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from threading import RLock
 from typing import Any, Protocol, runtime_checkable

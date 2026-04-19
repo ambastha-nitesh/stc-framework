@@ -39,10 +39,10 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+from collections.abc import Iterator
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import RLock
-from typing import Iterator
 
 from stc_framework.adapters.audit_backend.base import AuditBackend
 from stc_framework.observability.audit import (
@@ -73,6 +73,7 @@ class WORMAuditBackend(AuditBackend):
         When an active file reaches this size, a **seal record** is
         written and a new file is started. Unlike the plain JSONL
         backend, the rotated file is never renamed or deleted by us.
+
     """
 
     def __init__(

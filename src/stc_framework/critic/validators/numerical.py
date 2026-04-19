@@ -90,7 +90,7 @@ def _chunk_text(chunk: Any) -> str:
     if isinstance(chunk, dict):
         return str(chunk.get("text", ""))
     if hasattr(chunk, "page_content"):
-        return str(getattr(chunk, "page_content"))
+        return str(chunk.page_content)
     return str(chunk)
 
 

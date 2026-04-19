@@ -8,8 +8,8 @@ from stc_framework.adversarial.probes import (
 from stc_framework.adversarial.runner import run_adversarial_suite
 
 __all__ = [
-    "AdversarialProbe",
     "FINANCIAL_QA_PROBES",
+    "AdversarialProbe",
     "ProbeResult",
     "run_adversarial_suite",
 ]

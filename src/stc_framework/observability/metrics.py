@@ -21,13 +21,12 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from threading import Lock
-from typing import Optional
 
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, start_http_server
 from prometheus_client.registry import REGISTRY as _DEFAULT_REGISTRY
 
 _lock = Lock()
-_metrics: Optional["STCMetrics"] = None
+_metrics: STCMetrics | None = None
 _server_started = False
 _known_tenants: set[str] = set()
 

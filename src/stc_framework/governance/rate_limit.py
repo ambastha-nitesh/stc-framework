@@ -46,6 +46,7 @@ class TenantRateLimiter:
         Hard cap on tracked buckets; the oldest bucket is evicted when
         exceeded. Prevents memory blow-up in an unbounded-tenant
         deployment.
+
     """
 
     def __init__(

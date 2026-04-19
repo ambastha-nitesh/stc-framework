@@ -1,4 +1,3 @@
-import asyncio
 
 import pytest
 
@@ -9,7 +8,7 @@ from stc_framework.errors import (
     RetryExhausted,
 )
 from stc_framework.resilience.bulkhead import Bulkhead
-from stc_framework.resilience.circuit import Circuit, get_circuit
+from stc_framework.resilience.circuit import Circuit
 from stc_framework.resilience.fallback import run_with_fallback
 from stc_framework.resilience.retry import with_retry
 
@@ -45,6 +44,27 @@ async def test_retry_exhausted_on_unknown_transient():
 
     with pytest.raises(RetryExhausted):
         await with_retry(fn, downstream="test", max_attempts=2, base_delay=0.0)
+
+
+@pytest.mark.asyncio
+async def test_retry_treats_builtin_timeout_as_transient_on_310():
+    """Regression: on Python 3.10 builtins.TimeoutError and
+    asyncio.TimeoutError are distinct classes. A previous version of
+    _is_transient only matched asyncio.TimeoutError, so the builtin
+    raised by socket timeouts / third-party libs skipped retry entirely
+    on 3.10. Test explicitly exercises the builtin class.
+    """
+    attempts = {"n": 0}
+
+    async def fn():
+        attempts["n"] += 1
+        # Raise the builtin explicitly, not asyncio.TimeoutError.
+        raise TimeoutError("built-in timeout")
+
+    with pytest.raises(RetryExhausted):
+        await with_retry(fn, downstream="test", max_attempts=3, base_delay=0.0)
+    # Must have actually retried, not short-circuited on first failure.
+    assert attempts["n"] == 3
 
 
 @pytest.mark.asyncio

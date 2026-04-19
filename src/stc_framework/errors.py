@@ -33,6 +33,7 @@ class STCError(Exception):
         Hint to callers whether retrying makes sense.
     context:
         Arbitrary extra fields for logging.
+
     """
 
     message: str = ""

@@ -31,7 +31,4 @@ def is_local_model(model: str) -> bool:
     lowered = model.lower()
     if lowered.startswith(_LOCAL_PREFIXES):
         return True
-    for host in _LOCAL_HOSTS:
-        if host in lowered:
-            return True
-    return False
+    return any(host in lowered for host in _LOCAL_HOSTS)

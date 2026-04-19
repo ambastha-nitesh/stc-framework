@@ -59,7 +59,7 @@ def init_tracing(
 
         if otlp_endpoint:
             try:
-                from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (  # noqa: E501
+                from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
                     OTLPSpanExporter,
                 )
 

@@ -8,11 +8,10 @@ require OTLP / Prometheus servers, they read from an in-process
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
-from prometheus_client import CollectorRegistry, generate_latest
+from prometheus_client import CollectorRegistry
 
 from stc_framework.adapters.embeddings.hash_embedder import HashEmbedder
 from stc_framework.adapters.llm.mock import MockLLMClient

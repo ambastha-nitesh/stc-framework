@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Awaitable, Callable, Iterable, TypeVar
+from collections.abc import Awaitable, Callable, Iterable
+from typing import TypeVar
 
 from stc_framework.config.logging import get_logger
 from stc_framework.errors import STCError

@@ -31,7 +31,7 @@ class OptimizationManager:
 
         report = {
             "status": "healthy",
-            "samples": int(len(recent)),
+            "samples": len(recent),
             "window_hours": window_hours,
             "accuracy": {
                 "mean": float(accuracies.mean()),

@@ -14,7 +14,6 @@ from stc_framework.resilience import degradation as degradation_module
 from stc_framework.spec.loader import load_spec
 from stc_framework.spec.models import STCSpec
 
-
 _FIXTURE_DIR = Path(__file__).parent / "fixtures"
 
 

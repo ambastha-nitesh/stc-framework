@@ -6,11 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from stc_framework.adapters.embeddings.hash_embedder import HashEmbedder
 from stc_framework.adapters.llm.mock import MockLLMClient
-from stc_framework.adapters.prompts.file_registry import FilePromptRegistry
 from stc_framework.adapters.prompts.base import PromptRecord
-from stc_framework.adapters.vector_store.in_memory import InMemoryVectorStore
+from stc_framework.adapters.prompts.file_registry import FilePromptRegistry
 from stc_framework.resilience.degradation import DegradationLevel, DegradationState
 from stc_framework.sentinel.classifier import DataClassifier
 from stc_framework.sentinel.gateway import SentinelGateway

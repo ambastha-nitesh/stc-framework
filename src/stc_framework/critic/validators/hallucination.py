@@ -42,7 +42,7 @@ class HallucinationValidator(Validator):
         self,
         threshold: float = 0.8,
         *,
-        embeddings: "EmbeddingsClient | None" = None,
+        embeddings: EmbeddingsClient | None = None,
         min_sentence_overlap: float = 0.3,
     ) -> None:
         self._threshold = threshold
@@ -125,14 +125,14 @@ class HallucinationValidator(Validator):
         resp_vecs = await embeddings.aembed_batch(sentences)
 
         def cosine(a: list[float], b: list[float]) -> float:
-            dot = sum(x * y for x, y in zip(a, b))
+            dot = sum(x * y for x, y in zip(a, b, strict=False))
             na = math.sqrt(sum(x * x for x in a)) or 1.0
             nb = math.sqrt(sum(x * x for x in b)) or 1.0
             return dot / (na * nb)
 
         ungrounded: list[str] = []
         sims: list[float] = []
-        for sentence, vec in zip(sentences, resp_vecs):
+        for sentence, vec in zip(sentences, resp_vecs, strict=False):
             best = max(cosine(vec, cv) for cv in ctx_vecs)
             sims.append(best)
             if best < self._min_overlap:

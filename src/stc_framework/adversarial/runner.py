@@ -5,8 +5,9 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+from collections.abc import Iterable
 from datetime import datetime, timezone
-from typing import Any, Iterable
+from typing import Any
 
 from stc_framework.adversarial.probes import (
     FINANCIAL_QA_PROBES,
@@ -73,7 +74,7 @@ async def run_adversarial_suite(
     critical = [p for p in probe_list if p.severity == "critical"]
     critical_passed = sum(
         1
-        for p, r in zip(probe_list, results)
+        for p, r in zip(probe_list, results, strict=False)
         if p.severity == "critical" and r.passed
     )
 

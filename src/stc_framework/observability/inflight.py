@@ -8,9 +8,9 @@ Tracks the number of queries currently being processed. Exposed via the
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from threading import RLock
-from typing import AsyncIterator
 
 from stc_framework.observability.metrics import get_metrics
 

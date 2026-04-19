@@ -8,8 +8,8 @@ Drives a single ``DegradationState`` per process. Listeners (Trainer's
 from __future__ import annotations
 
 import enum
+from collections.abc import Callable
 from threading import RLock
-from typing import Callable
 
 from stc_framework.config.logging import get_logger
 from stc_framework.observability.metrics import get_metrics
@@ -26,7 +26,7 @@ class DegradationLevel(enum.IntEnum):
     PAUSED = 3
 
     @classmethod
-    def from_string(cls, value: str) -> "DegradationLevel":
+    def from_string(cls, value: str) -> DegradationLevel:
         mapping = {
             "normal": cls.NORMAL,
             "degraded": cls.DEGRADED,

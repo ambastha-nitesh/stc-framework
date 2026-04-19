@@ -94,19 +94,18 @@ class ScopeValidator(Validator):
                 evidence={"violations": violations},
             )
 
-        if self._allowed:
-            if not any(
-                any(p.search(ctx.response) for p in _TOPIC_PATTERNS.get(topic, []))
-                for topic in self._allowed
-            ):
-                return GuardrailResult(
-                    rail_name=self.rail_name,
-                    passed=False,
-                    severity="low",
-                    action=self._allowed_action,
-                    details="Response did not match any allowed_topics pattern",
-                    evidence={"allowed_topics": self._allowed},
-                )
+        if self._allowed and not any(
+            any(p.search(ctx.response) for p in _TOPIC_PATTERNS.get(topic, []))
+            for topic in self._allowed
+        ):
+            return GuardrailResult(
+                rail_name=self.rail_name,
+                passed=False,
+                severity="low",
+                action=self._allowed_action,
+                details="Response did not match any allowed_topics pattern",
+                evidence={"allowed_topics": self._allowed},
+            )
 
         return GuardrailResult(
             rail_name=self.rail_name,

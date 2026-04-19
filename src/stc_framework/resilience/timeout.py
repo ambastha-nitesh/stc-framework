@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import asyncio
 import sys
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 _HAS_NATIVE_TIMEOUT = sys.version_info >= (3, 11)
 

@@ -6,8 +6,8 @@ Prevents a single slow dependency from consuming the entire async worker pool.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 from stc_framework.errors import BulkheadFull
 from stc_framework.observability.metrics import get_metrics
@@ -54,15 +54,15 @@ class Bulkhead:
             pass
         # Best-effort; asyncio.Semaphore has no public non-blocking acquire.
         try:
-            self._sem._value  # noqa: SLF001 - private attribute, used carefully.
+            self._sem._value
         except AttributeError:  # pragma: no cover
             return False
-        if self._sem._value > 0:  # noqa: SLF001
-            self._sem._value -= 1  # noqa: SLF001
+        if self._sem._value > 0:
+            self._sem._value -= 1
             return True
         get_metrics().bulkhead_rejections_total.labels(bulkhead=self.name).inc()
         return False
 
     @property
     def in_use(self) -> int:
-        return self.limit - self._sem._value  # noqa: SLF001 - diagnostic only
+        return self.limit - self._sem._value

@@ -9,7 +9,6 @@ from stc_framework.critic.validators.base import (
 )
 from stc_framework.sentinel.redaction import PIIRedactor
 
-
 _HIGH_RISK = {"CREDIT_CARD", "US_SSN", "US_BANK_NUMBER"}
 
 

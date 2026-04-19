@@ -39,7 +39,7 @@ async def _seed_docs(system: STCSystem) -> None:
                 text=c[2],
                 metadata={"source": c[0], "page": c[1]},
             )
-            for i, (c, v) in enumerate(zip(chunks, vectors))
+            for i, (c, v) in enumerate(zip(chunks, vectors, strict=False))
         ],
     )
 

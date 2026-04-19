@@ -56,12 +56,9 @@ from pathlib import Path
 from threading import RLock
 from typing import Any
 
-from contextlib import AsyncExitStack
-
 from stc_framework.adapters.audit_backend.base import AuditBackend
 from stc_framework.adapters.audit_backend.local_file import JSONLAuditBackend
 from stc_framework.adapters.audit_backend.worm import (
-    ComplianceViolation,
     WORMAuditBackend,
 )
 from stc_framework.adapters.embeddings.base import EmbeddingsClient
@@ -84,6 +81,8 @@ from stc_framework.governance.rate_limit import RateLimitExceeded, TenantRateLim
 from stc_framework.observability.audit import (
     AuditLogger,
     AuditRecord,
+)
+from stc_framework.observability.audit import (
     _KeyManager as _AuditKeyManager,
 )
 from stc_framework.observability.correlation import bind_correlation, new_request_id
@@ -113,8 +112,8 @@ from stc_framework.sentinel.redaction import PIIRedactor
 from stc_framework.sentinel.token_store import InMemoryTokenStore
 from stc_framework.sentinel.tokenization import Tokenizer
 from stc_framework.spec.loader import load_spec
-from stc_framework.spec.signing import SpecSignatureError, verify_spec_signature
 from stc_framework.spec.models import STCSpec
+from stc_framework.spec.signing import SpecSignatureError, verify_spec_signature
 from stc_framework.stalwart.agent import StalwartAgent
 from stc_framework.stalwart.state import StalwartResult
 from stc_framework.trainer.trainer import Trainer
@@ -253,11 +252,11 @@ class STCSystem:
     # Factories
     # ------------------------------------------------------------------
     @classmethod
-    def from_spec(cls, path: str | Path, **kwargs: Any) -> "STCSystem":
+    def from_spec(cls, path: str | Path, **kwargs: Any) -> STCSystem:
         return cls(load_spec(path), **kwargs)
 
     @classmethod
-    def from_env(cls, **kwargs: Any) -> "STCSystem":
+    def from_env(cls, **kwargs: Any) -> STCSystem:
         settings = get_settings()
         return cls.from_spec(settings.spec_path, settings=settings, **kwargs)
 
@@ -390,7 +389,7 @@ class STCSystem:
 
         # 2. Tokenization must be strict (missing tokenization key fails
         # closed instead of silently generating a per-process key).
-        if is_prod and not os.getenv("STC_TOKENIZATION_STRICT", "").lower() in {
+        if is_prod and os.getenv("STC_TOKENIZATION_STRICT", "").lower() not in {
             "1",
             "true",
             "yes",
@@ -679,7 +678,7 @@ class STCSystem:
         trace_id: str,
         request_id: str,
         span: Any,
-    ) -> "QueryResult":
+    ) -> QueryResult:
         metrics = get_metrics()
         tenant_lbl = tenant_label(tenant_id)
 

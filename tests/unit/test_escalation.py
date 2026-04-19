@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta, timezone
 
-import pytest
-
 from stc_framework.critic.escalation import EscalationManager
 from stc_framework.critic.validators.base import GovernanceVerdict, GuardrailResult
 from stc_framework.resilience.degradation import DegradationLevel, DegradationState

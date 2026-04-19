@@ -40,6 +40,7 @@ def load_spec(path: str | os.PathLike[str]) -> STCSpec:
     SpecValidationError
         When pydantic validation fails. The ``context['errors']`` attribute
         contains the structured pydantic error list.
+
     """
     p = Path(path)
     if not p.exists():

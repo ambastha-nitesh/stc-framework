@@ -7,11 +7,9 @@ the corresponding control has regressed.
 
 from __future__ import annotations
 
-import asyncio
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
 
 import pytest
 
@@ -30,13 +28,11 @@ from stc_framework.governance import (
 )
 from stc_framework.governance.events import AuditEvent
 from stc_framework.observability.audit import AuditRecord, verify_chain
-from stc_framework.sentinel.redaction import PIIRedactor
 from stc_framework.sentinel.token_store import InMemoryTokenStore
 from stc_framework.sentinel.tokenization import Tokenizer
 from stc_framework.system import STCSystem
-from stc_framework.trainer.history_store import InMemoryHistoryStore, record_from_trace
+from stc_framework.trainer.history_store import record_from_trace
 from stc_framework.trainer.notifications import _strip_pii
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -162,8 +158,8 @@ class TestAuditCoverage:
     async def test_prompt_publication_audited(self, tmp_path: Path, fixture_dir: Path):
         # Use a fresh file-backed registry so the test does not collide
         # with any previously registered version on disk.
-        from stc_framework.adapters.prompts.file_registry import FilePromptRegistry
         from stc_framework.adapters.prompts.base import PromptRecord
+        from stc_framework.adapters.prompts.file_registry import FilePromptRegistry
         from stc_framework.reference_impl.financial_qa.prompts import (
             FINANCIAL_QA_SYSTEM_PROMPT,
         )
@@ -242,7 +238,7 @@ class TestAuditTamperEvidence:
         lines[2] = json.dumps(payload)
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-        ok, count, why = verify_chain(backend.iter_records())
+        ok, _count, why = verify_chain(backend.iter_records())
         assert not ok
         assert "entry_hash mismatch" in why
 
@@ -445,7 +441,7 @@ class TestTenantIsolation:
         await _seed(system, tenant_id="bob")
         try:
             result = await system.aquery("what was revenue", tenant_id="alice")
-            chunk_tenants = {
+            {
                 c.get("source")  # source doesn't include tenant, but the chunk ids do
                 for c in (result.metadata.get("citations") or [])
             }
@@ -529,7 +525,7 @@ class TestPIILeakSurface:
                 raise RuntimeError("User typed their SSN 123-45-6789")
 
             monkeypatch.setattr(system._stalwart, "_retrieve", boom)
-            result = await system.aquery("what was revenue", tenant_id="t")
+            await system.aquery("what was revenue", tenant_id="t")
             # The response text must not reflect the exception string.
             for audit in system._audit.backend.iter_records():
                 serialized = json.dumps(audit.model_dump())

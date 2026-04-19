@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import os
 import re
-import signal
 import time
 from pathlib import Path
 
@@ -23,8 +22,8 @@ from stc_framework.critic.validators.base import ValidationContext
 from stc_framework.critic.validators.injection import PromptInjectionValidator
 from stc_framework.errors import (
     DataSovereigntyViolation,
-    STCError,
     SpecValidationError,
+    STCError,
     TokenizationError,
 )
 from stc_framework.security.injection import detect_injection
@@ -42,7 +41,6 @@ from stc_framework.sentinel.token_store import InMemoryTokenStore
 from stc_framework.sentinel.tokenization import Tokenizer
 from stc_framework.spec.loader import spec_from_dict
 from stc_framework.system import STCSystem
-
 
 # ---------------------------------------------------------------------------
 # V1 — ReDoS in redaction regex patterns
@@ -299,7 +297,7 @@ class TestInputLimits:
             )
             result = await system.aquery("tell me about the big document")
             # Each chunk must be clipped to max_chunk_chars.
-            chunks = result.metadata.get("citations", [])  # indirect assertion
+            result.metadata.get("citations", [])  # indirect assertion
             # The context surfaced back should never exceed max_context_chars.
             # We do not leak the raw context here, but verify the system did
             # not OOM / crash.

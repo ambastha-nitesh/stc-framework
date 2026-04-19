@@ -5,8 +5,8 @@ from stc_framework.spec.models import (
     CriticSpec,
     DataSovereigntySpec,
     SentinelSpec,
-    STCSpec,
     StalwartSpec,
+    STCSpec,
     TrainerSpec,
 )
 

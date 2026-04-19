@@ -8,10 +8,8 @@ that finding has regressed and the release should be blocked.
 
 from __future__ import annotations
 
-import asyncio
 import base64
 import json
-import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -33,15 +31,11 @@ from stc_framework.governance.budget import (
     TenantBudgetTracker,
 )
 from stc_framework.governance.erasure import erase_tenant
-from stc_framework.governance.events import AuditEvent
-from stc_framework.governance.idempotency import IdempotencyCache
 from stc_framework.observability.audit import (
     AuditRecord,
     _KeyManager,
-    compute_entry_hash,
     verify_chain,
 )
-from stc_framework.spec.loader import load_spec
 from stc_framework.spec.signing import (
     SpecSignatureError,
     sign_spec,
@@ -366,7 +360,7 @@ class TestIdempotencyClearedOnErase:
         system = _make_system(tmp_path, fixture_dir)
         await _seed(system, tenant="doomed")
         try:
-            result = await system.aquery(
+            await system.aquery(
                 "q", tenant_id="doomed", idempotency_key="k-1"
             )
             # Confirm the cache holds the result.

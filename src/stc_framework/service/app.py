@@ -7,16 +7,14 @@ import threading
 from typing import Any
 
 try:
-    from flask import Flask, Response, g, jsonify, request
+    from flask import Flask, Response, g, request
 except ImportError as exc:  # pragma: no cover - optional extra
     raise ImportError(
         "Flask not installed; install with `pip install stc-framework[service]`"
     ) from exc
 
 from stc_framework.config.logging import get_logger
-from stc_framework.errors import STCError, http_status_for
-from stc_framework.observability.correlation import bind_correlation, new_request_id
-from stc_framework.resilience.degradation import get_degradation_state
+from stc_framework.observability.correlation import new_request_id
 from stc_framework.security.limits import get_security_limits
 from stc_framework.security.sanitize import sanitize_header_value
 from stc_framework.service.middleware import register_error_handlers, register_rate_limiter

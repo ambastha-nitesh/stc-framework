@@ -30,7 +30,7 @@ class RedactionResult:
 # long digit runs. Character classes also avoid overlap between the quantified
 # group and any surrounding greedy construct.
 _FALLBACK_PATTERNS: dict[str, re.Pattern[str]] = {
-    # 13–19 digit groups separated by at most one space/hyphen.
+    # 13-19 digit groups separated by at most one space/hyphen.
     "CREDIT_CARD": re.compile(r"(?<!\d)(?:\d[ -]?){13,19}(?!\d)"),
     "US_SSN": re.compile(r"(?<!\d)\d{3}-\d{2}-\d{4}(?!\d)"),
     "EMAIL_ADDRESS": re.compile(r"[\w.+-]{1,64}@[\w-]{1,63}\.[\w.-]{1,63}"),

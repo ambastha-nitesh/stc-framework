@@ -43,8 +43,9 @@ import json
 import os
 import secrets
 import threading
+from collections.abc import Iterator
 from datetime import datetime, timezone
-from typing import Any, Iterator, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
@@ -202,6 +203,7 @@ def verify_chain(
         the first surviving record's predecessor has been deleted.
         Strict mode (the default) still requires the chain to begin at
         :data:`_GENESIS_HASH`.
+
     """
     prev: str | None = None if accept_unknown_genesis else _GENESIS_HASH
     count = 0
@@ -234,7 +236,7 @@ class AuditLogger:
     Every write also bumps the ``stc_governance_events_total`` counter.
     """
 
-    def __init__(self, backend: "AuditBackend") -> None:
+    def __init__(self, backend: AuditBackend) -> None:
         self._backend = backend
 
     def _record_metric(self, record: AuditRecord) -> None:
@@ -261,5 +263,5 @@ class AuditLogger:
         await self._backend.close()
 
     @property
-    def backend(self) -> "AuditBackend":
+    def backend(self) -> AuditBackend:
         return self._backend

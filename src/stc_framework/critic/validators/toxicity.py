@@ -33,7 +33,7 @@ class ToxicityValidator(Validator):
     def __init__(
         self,
         *,
-        external: "ExternalGuardrailClient | None" = None,
+        external: ExternalGuardrailClient | None = None,
         threshold: float = 0.7,
     ) -> None:
         self._external = external

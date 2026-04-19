@@ -55,7 +55,7 @@ async def load_text_document(
             text=chunk_text,
             metadata={"source": doc_name, "page": page},
         )
-        for (page, chunk_text), vec in zip(chunks, vectors)
+        for (page, chunk_text), vec in zip(chunks, vectors, strict=False)
     ]
     await vector_store.upsert(collection, records)
     return len(records)

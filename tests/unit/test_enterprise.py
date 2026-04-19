@@ -11,8 +11,6 @@ Covers:
 
 from __future__ import annotations
 
-import asyncio
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest

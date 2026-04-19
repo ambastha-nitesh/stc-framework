@@ -1,5 +1,10 @@
 """Security primitives: input limits, sanitizers, injection detection."""
 
+from stc_framework.security.injection import (
+    INJECTION_RULES,
+    InjectionMatch,
+    detect_injection,
+)
 from stc_framework.security.limits import (
     SecurityLimits,
     enforce_string_limit,
@@ -10,11 +15,6 @@ from stc_framework.security.sanitize import (
     sanitize_context_chunk,
     sanitize_header_value,
     strip_zero_width,
-)
-from stc_framework.security.injection import (
-    INJECTION_RULES,
-    InjectionMatch,
-    detect_injection,
 )
 
 __all__ = [

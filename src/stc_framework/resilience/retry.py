@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import random
+from collections.abc import Awaitable, Callable
 from functools import wraps
-from typing import Any, Awaitable, Callable, TypeVar
+from typing import Any, TypeVar
 
 from stc_framework.config.logging import get_logger
 from stc_framework.errors import (
@@ -35,9 +36,11 @@ def _is_transient(exc: BaseException) -> bool:
         exc, (httpx.ConnectError, httpx.ReadTimeout, httpx.WriteTimeout, httpx.RemoteProtocolError)
     ):
         return True
-    if isinstance(exc, asyncio.TimeoutError):
-        return True
-    return False
+    # On Python 3.11+ asyncio.TimeoutError and builtins.TimeoutError were
+    # unified into the same class. On 3.10 they are distinct, and socket
+    # timeouts / third-party libs commonly raise the builtin. Match both
+    # so retry behaviour is consistent across the supported matrix.
+    return bool(isinstance(exc, (asyncio.TimeoutError, TimeoutError)))
 
 
 async def with_retry(
@@ -60,6 +63,7 @@ async def with_retry(
         Total attempts including the first.
     base_delay, max_delay:
         Exponential backoff parameters in seconds.
+
     """
     metrics = get_metrics()
     last_exc: BaseException | None = None
@@ -86,7 +90,7 @@ async def with_retry(
                 raise
 
             delay = min(max_delay, base_delay * (2 ** (attempt - 1)))
-            delay = random.uniform(0, delay)  # noqa: S311 - jitter, not crypto
+            delay = random.uniform(0, delay)
             metrics.retry_attempts_total.labels(downstream=downstream, outcome="retry").inc()
             _logger.warning(
                 "retry.backoff",

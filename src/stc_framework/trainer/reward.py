@@ -8,9 +8,10 @@ callers can add domain-specific rewards without subclassing.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import Any
 
 from stc_framework.spec.models import STCSpec
 
@@ -132,5 +133,5 @@ def _text_of(chunk: Any) -> str:
     if isinstance(chunk, dict):
         return str(chunk.get("text", ""))
     if hasattr(chunk, "page_content"):
-        return str(getattr(chunk, "page_content"))
+        return str(chunk.page_content)
     return str(chunk)

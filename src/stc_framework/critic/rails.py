@@ -7,7 +7,7 @@ and skipped.
 
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from stc_framework.config.logging import get_logger
 from stc_framework.critic.validators.base import (

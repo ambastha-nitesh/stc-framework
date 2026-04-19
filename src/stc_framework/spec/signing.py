@@ -94,6 +94,7 @@ def verify_spec_signature(
         If ``False``, missing-signature/missing-key quietly pass (dev
         workflow) but an actual invalid signature still raises — you
         cannot bypass a bad signature by deleting the env var.
+
     """
     from cryptography.exceptions import InvalidSignature
     from cryptography.hazmat.primitives.asymmetric.ed25519 import (

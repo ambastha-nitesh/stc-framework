@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
-
 from flask import Flask, Response, g, jsonify, request
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from stc_framework.config.logging import get_logger
 from stc_framework.observability.correlation import bind_correlation
-from stc_framework.resilience.degradation import get_degradation_state
 from stc_framework.security.limits import get_security_limits
 from stc_framework.security.sanitize import sanitize_header_value
 

@@ -6,13 +6,14 @@ Public entrypoints:
 - :mod:`stc_framework.errors`: typed error taxonomy.
 - :mod:`stc_framework.spec`: declarative specification loader and models.
 
-Example
+Example:
 -------
 >>> from stc_framework import STCSystem
 >>> system = STCSystem.from_spec("spec-examples/financial_qa.yaml")
 >>> result = system.query("What was FY2024 revenue?")
 >>> result.response
 '...'
+
 """
 
 from __future__ import annotations

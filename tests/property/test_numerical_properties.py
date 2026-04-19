@@ -1,5 +1,6 @@
 import pytest
-from hypothesis import given, strategies as st
+from hypothesis import given
+from hypothesis import strategies as st
 
 from stc_framework.critic.validators.base import ValidationContext
 from stc_framework.critic.validators.numerical import NumericalAccuracyValidator

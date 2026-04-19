@@ -7,9 +7,9 @@ thread-pool boundaries without threading them through every function.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
-from typing import Iterator
 
 _request_id: ContextVar[str | None] = ContextVar("stc_request_id", default=None)
 _trace_id: ContextVar[str | None] = ContextVar("stc_trace_id", default=None)

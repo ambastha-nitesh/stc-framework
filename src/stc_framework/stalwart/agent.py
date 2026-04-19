@@ -40,8 +40,8 @@ from stc_framework.resilience.timeout import atimeout
 from stc_framework.security.limits import get_security_limits
 from stc_framework.security.sanitize import sanitize_context_chunk
 from stc_framework.sentinel.classifier import DataClassifier
-from stc_framework.sentinel.redaction import PIIRedactor
 from stc_framework.sentinel.gateway import SentinelGateway
+from stc_framework.sentinel.redaction import PIIRedactor
 from stc_framework.spec.models import STCSpec
 from stc_framework.stalwart.state import StalwartResult
 

@@ -27,8 +27,8 @@ from __future__ import annotations
 
 import base64
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from stc_framework.security.sanitize import strip_zero_width
 
@@ -193,7 +193,8 @@ _B64_RUN = re.compile(r"[A-Za-z0-9+/]{40,}={0,2}")
 
 def _decoded_injection(text: str) -> InjectionMatch | None:
     """Return a match if ``text`` contains a base64 run whose decoding
-    contains a known injection verb."""
+    contains a known injection verb.
+    """
     for match in _B64_RUN.finditer(text):
         blob = match.group(0)
         try:

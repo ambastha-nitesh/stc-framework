@@ -118,7 +118,7 @@ class Tokenizer:
 
         pattern = re.compile(r"STC_TOK_[0-9a-f]{12}")
 
-        def repl(match: "re.Match[str]") -> str:
+        def repl(match: re.Match[str]) -> str:
             token = match.group(0)
             value = self._store.get(token)
             return value if value is not None else token

@@ -1,7 +1,7 @@
-from hypothesis import HealthCheck, given, settings, strategies as st
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
 
 from stc_framework.sentinel.classifier import DataClassifier
-
 
 _TIER_ORDER = {"public": 0, "internal": 1, "restricted": 2}
 

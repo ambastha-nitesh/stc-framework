@@ -113,19 +113,47 @@ precision = 1
 show_missing = true
 
 [tool.ruff]
-line-length = 100
+# 120 chars — modern mainstream for Python. Our prior 100 was tight and
+# caused natural fixture lines (eval_dataset.py, scope patterns) to
+# violate without a readability win.
+line-length = 120
 target-version = "py310"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "N", "D"]
-ignore = ["D100", "D101", "D102", "D103", "D104", "D105", "D107", "D203", "D213"]
+# Domain-intentional deviations from the default rule set:
+# N818 — our exception classes use domain-meaningful suffixes
+#   (DataSovereigntyViolation, LLMTimeout, CircuitBreakerOpen, etc.)
+#   which read more naturally at call sites than *Error. All inherit
+#   from STCError so pythonic catch semantics work. PEP 8's
+#   *Error-suffix convention is advisory; our naming is deliberate
+#   and documented in errors.py + DECISIONS.md.
+# SIM105 — ``try: ... except X: pass`` is used deliberately in a
+#   handful of best-effort cleanup sites (file IO, metrics, adapter
+#   aclose) to document which specific exception is being swallowed.
+#   contextlib.suppress loses that documentation benefit.
+# SIM102 / SIM117 — nested ifs / nested with-statements are often
+#   clearer in defensive code where each level has a distinct purpose.
+# D205 / D401 — docstring-style preferences; not worth CI churn.
+# D417 — already covered by our hand-written docstrings where needed.
+# B018 — tests deliberately evaluate expressions for side-effects.
+ignore = [
+    "D100", "D101", "D102", "D103", "D104", "D105", "D107",
+    "D203", "D213", "D205", "D401", "D417",
+    "N818",
+    "SIM102", "SIM105", "SIM117",
+    "B018",
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["D"]
+# The evaluation dataset is a fixture of natural-language test cases;
+# one question per line is more readable than any reflow would produce.
+"src/stc_framework/reference_impl/financial_qa/eval_dataset.py" = ["E501"]
 
 [tool.black]
-line-length = 100
+line-length = 120
 target-version = ["py310", "py311", "py312"]
 
 [tool.mypy]
