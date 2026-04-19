@@ -48,6 +48,8 @@ parquet = ["pyarrow>=14.0"]
 langgraph = ["langgraph>=0.2", "langchain-core>=0.3"]
 otlp = ["opentelemetry-exporter-otlp>=1.22"]
 service = ["flask>=3.0", "gunicorn>=21.2", "flask-limiter>=3.5", "werkzeug>=3.0"]
+launchdarkly = ["launchdarkly-server-sdk>=9.0"]
+redis = ["redis>=5.0"]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
@@ -58,10 +60,11 @@ dev = [
     "mypy>=1.8",
     "respx>=0.20",
     "freezegun>=1.4",
+    "fakeredis>=2.23",
     "types-PyYAML",
 ]
 all = [
-    "stc-framework[presidio,qdrant,litellm,langfuse,phoenix,nemo,guardrails-ai,parquet,langgraph,otlp,service]",
+    "stc-framework[presidio,qdrant,litellm,langfuse,phoenix,nemo,guardrails-ai,parquet,langgraph,otlp,service,launchdarkly,redis]",
 ]
 
 [project.urls]

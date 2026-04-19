@@ -1,0 +1,172 @@
+name: Deploy
+
+# Triggers:
+#   - push to ``main`` → deploys to dev.
+#   - tag matching ``v*`` → deploys to prod (protected environment).
+#   - workflow_dispatch → deploys to the env picked from the ``environment``
+#     input (staging or any env with a configured IAM role).
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "staging"
+        type: choice
+        options: [dev, staging, prod]
+
+concurrency:
+  # Never cancel a live rollout; queue instead.
+  group: deploy-${{ github.event.inputs.environment || (startsWith(github.ref, 'refs/tags/v') && 'prod') || 'dev' }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write   # for GitHub OIDC -> AWS
+  contents: read
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.pick.outputs.environment }}
+      deployed_subsystems: ${{ steps.pick.outputs.deployed_subsystems }}
+      aws_region: ${{ steps.pick.outputs.aws_region }}
+      iam_role: ${{ steps.pick.outputs.iam_role }}
+      subshash: ${{ steps.pick.outputs.subshash }}
+      image_tag: ${{ steps.pick.outputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pick environment + build tag
+        id: pick
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+              env="${{ github.event.inputs.environment }}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+              env="prod"
+          else
+              env="dev"
+          fi
+          echo "Selected env: $env"
+          # Extract the matrix row via yq.
+          pip install --quiet yq
+          subs=$(yq -r ".environments.${env}.deployed_subsystems" .github/deploy-matrix.yaml)
+          region=$(yq -r ".environments.${env}.aws_region" .github/deploy-matrix.yaml)
+          role=$(yq -r ".environments.${env}.iam_role" .github/deploy-matrix.yaml)
+          subshash=$(echo -n "$subs" | sha256sum | head -c 8)
+          tag="${GITHUB_SHA:0:12}-${subshash}"
+          {
+              echo "environment=${env}"
+              echo "deployed_subsystems=${subs}"
+              echo "aws_region=${region}"
+              echo "iam_role=${role}"
+              echo "subshash=${subshash}"
+              echo "image_tag=${tag}"
+          } >> "$GITHUB_OUTPUT"
+
+  build-image:
+    needs: resolve
+    runs-on: ubuntu-latest
+    environment: ${{ needs.resolve.outputs.environment }}
+    env:
+      IMAGE_TAG: ${{ needs.resolve.outputs.image_tag }}
+      DEPLOYED_SUBSYSTEMS: ${{ needs.resolve.outputs.deployed_subsystems }}
+      AWS_REGION: ${{ needs.resolve.outputs.aws_region }}
+      IAM_ROLE: ${{ needs.resolve.outputs.iam_role }}
+    outputs:
+      image_uri: ${{ steps.push.outputs.image_uri }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.IAM_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: login
+      - name: Build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ${{ steps.login.outputs.registry }}/stc-framework-${{ needs.resolve.outputs.environment }}-stc-framework:${{ env.IMAGE_TAG }}
+            ${{ steps.login.outputs.registry }}/stc-framework-${{ needs.resolve.outputs.environment }}-stc-framework:${{ needs.resolve.outputs.environment }}-latest
+          build-args: |
+            DEPLOYED_SUBSYSTEMS=${{ env.DEPLOYED_SUBSYSTEMS }}
+            GIT_SHA=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Emit URI
+        id: push
+        run: |
+          echo "image_uri=${{ steps.login.outputs.registry }}/stc-framework-${{ needs.resolve.outputs.environment }}-stc-framework:${{ env.IMAGE_TAG }}" >> "$GITHUB_OUTPUT"
+
+  terraform-apply:
+    needs: [resolve, build-image]
+    runs-on: ubuntu-latest
+    environment: ${{ needs.resolve.outputs.environment }}
+    env:
+      TF_IN_AUTOMATION: "true"
+      TF_VAR_image_tag: ${{ needs.resolve.outputs.image_tag }}
+      TF_VAR_deployed_subsystems: ${{ needs.resolve.outputs.deployed_subsystems }}
+      AWS_REGION: ${{ needs.resolve.outputs.aws_region }}
+      IAM_ROLE: ${{ needs.resolve.outputs.iam_role }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.IAM_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.5
+      - name: Compute backend config
+        id: backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          account_id=$(aws sts get-caller-identity --query Account --output text)
+          echo "bucket=stc-framework-tfstate-${account_id}-${AWS_REGION}" >> "$GITHUB_OUTPUT"
+          echo "table=stc-framework-tfstate-lock" >> "$GITHUB_OUTPUT"
+      - name: Init
+        working-directory: infra/terraform
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=${{ steps.backend.outputs.bucket }}" \
+            -backend-config="dynamodb_table=${{ steps.backend.outputs.table }}" \
+            -backend-config="region=${AWS_REGION}"
+      - name: Workspace
+        working-directory: infra/terraform
+        run: |
+          terraform workspace select "${{ needs.resolve.outputs.environment }}" \
+            || terraform workspace new "${{ needs.resolve.outputs.environment }}"
+      - name: Plan
+        working-directory: infra/terraform
+        run: |
+          terraform plan -input=false \
+            -var-file="environments/${{ needs.resolve.outputs.environment }}/terraform.tfvars" \
+            -out=plan.tfplan
+      - name: Apply
+        working-directory: infra/terraform
+        run: terraform apply -input=false -auto-approve plan.tfplan
+      - name: Post-deploy readiness probe
+        working-directory: infra/terraform
+        run: |
+          api=$(terraform output -raw api_endpoint)
+          for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            status=$(curl -s -o /dev/null -w '%{http_code}' "${api}/readyz" || true)
+            echo "attempt $i: $status"
+            if [[ "$status" == "200" ]]; then
+              echo "ready"
+              exit 0
+            fi
+            sleep $((5 * i))
+          done
+          echo "readyz never returned 200"
+          exit 1

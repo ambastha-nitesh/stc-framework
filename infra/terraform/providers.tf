@@ -1,0 +1,11 @@
+provider "aws" {
+  region = var.region
+
+  default_tags {
+    tags = {
+      managed_by  = "terraform"
+      service     = "stc-framework"
+      environment = terraform.workspace
+    }
+  }
+}

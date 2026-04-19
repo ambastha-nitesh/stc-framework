@@ -1,0 +1,26 @@
+# Per-environment deploy configuration. Read by the ``deploy.yml``
+# workflow to build the right ``DEPLOYED_SUBSYSTEMS`` value and pick
+# the AWS role to assume. The image tag is computed from git SHA +
+# sha256(deployed_subsystems) at build time.
+
+environments:
+  dev:
+    aws_region: us-east-1
+    iam_role: arn:aws:iam::000000000000:role/stc-framework-dev-github-deploy
+    deployed_subsystems: "service,litellm,redis,launchdarkly,otlp"
+    auto_deploy: true   # push to main triggers this env
+    approval_required: false
+
+  staging:
+    aws_region: us-east-1
+    iam_role: arn:aws:iam::000000000000:role/stc-framework-staging-github-deploy
+    deployed_subsystems: "service,litellm,redis,launchdarkly,otlp,qdrant,presidio"
+    auto_deploy: false  # workflow_dispatch only
+    approval_required: true
+
+  prod:
+    aws_region: us-east-1
+    iam_role: arn:aws:iam::000000000000:role/stc-framework-prod-github-deploy
+    deployed_subsystems: "service,litellm,redis,launchdarkly,otlp,qdrant,presidio,langfuse"
+    auto_deploy: false  # tag v* triggers this env
+    approval_required: true

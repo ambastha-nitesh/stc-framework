@@ -1,0 +1,110 @@
+# Local smoke-test stack for Phase B verification.
+#
+# Mirrors the production ECS topology: STC service, Redis (takes the
+# place of ElastiCache), LaunchDarkly Relay Proxy, Qdrant, Postgres
+# (takes the place of Aurora), and LocalStack (S3 only, takes the place
+# of the Object Lock audit bucket). Every service reachable on
+# ``http://localhost:<port>``.
+#
+# Run: ``docker compose -f infra/docker/docker-compose.yaml up -d``
+# then ``bash scripts/smoke_docker.sh``.
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "local-dev-token"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "local-dev-token", "ping"]
+      interval: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: stc
+      POSTGRES_PASSWORD: local-dev-pg
+      POSTGRES_DB: stc_history
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "stc"]
+      interval: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:v1.11.0
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -qO- http://127.0.0.1:6333/ > /dev/null"]
+      interval: 5s
+      retries: 5
+
+  localstack:
+    image: localstack/localstack:3.5
+    environment:
+      SERVICES: s3
+      DEFAULT_REGION: us-east-1
+    ports:
+      - "4566:4566"
+
+  ld-relay:
+    # Use the upstream image directly for local compose; production
+    # pulls the ECR mirror built from infra/docker/ld-relay/Dockerfile.
+    image: launchdarkly/ld-relay:7
+    environment:
+      # Use the SDK key provided via ``.env`` alongside this compose
+      # file. A missing key puts the relay into offline mode — tests
+      # drive flags via the LD SDK TestData source anyway.
+      LD_ENV_local: "${LD_SDK_KEY:-sdk-offline-placeholder}"
+    ports:
+      - "8030:8030"
+
+  stc:
+    image: stc-framework:local
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      args:
+        DEPLOYED_SUBSYSTEMS: "service,litellm,redis,launchdarkly,otlp"
+        GIT_SHA: "local"
+    environment:
+      STC_ENV: "dev"
+      STC_LOG_LEVEL: "INFO"
+      STC_LOG_FORMAT: "json"
+      STC_SERVICE_NAME: "stc-framework-local"
+      STC_REDIS_URL: "redis://:local-dev-token@redis:6379/0"
+      STC_HISTORY_DSN: "postgresql://stc:local-dev-pg@postgres:5432/stc_history"
+      STC_AUDIT_PATH: "/mnt/audit"
+      STC_TOKEN_STORE_PATH: "/mnt/tokens/token_store.bin"
+      STC_LD_RELAY_URL: "http://ld-relay:8030"
+      STC_LD_OFFLINE_MODE: "true"
+      STC_LLM_ADAPTER: "mock"
+      LD_SDK_KEY: "${LD_SDK_KEY:-sdk-offline-placeholder}"
+    ports:
+      - "8000:8000"
+      - "9090:9090"
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      ld-relay:
+        condition: service_started
+      localstack:
+        condition: service_started
+    volumes:
+      - audit-data:/mnt/audit
+      - token-data:/mnt/tokens
+
+volumes:
+  qdrant-data:
+  audit-data:
+  token-data:

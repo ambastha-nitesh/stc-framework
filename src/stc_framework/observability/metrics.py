@@ -99,6 +99,8 @@ class STCMetrics:
     session_cost_usd_total: Counter
     slo_violations_total: Counter
     asset_quality_score: Gauge
+    # --- v0.3.1 feature flags ---------------------------------------
+    feature_flag_fallback_total: Counter
 
 
 _DEFAULT_BUCKETS = (5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000)
@@ -292,6 +294,12 @@ def init_metrics(registry: CollectorRegistry | None = None) -> STCMetrics:
                 "stc_asset_quality_score",
                 "Data-catalog quality score (0-1) by asset type.",
                 labelnames=("asset_type",),
+                registry=reg,
+            ),
+            feature_flag_fallback_total=Counter(
+                "stc_feature_flag_fallback_total",
+                "Feature-flag evaluations that fell back to the hard default.",
+                labelnames=("flag",),
                 registry=reg,
             ),
         )
