@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+from stc_framework._internal.metrics_safe import safe_inc
 from stc_framework.compliance.patterns import (
     PatternCatalog,
     default_finra_catalog,
@@ -331,12 +332,9 @@ class Rule2210Engine:
 
     def _emit_metrics(self, result: ReviewResult) -> None:
         metrics = get_metrics()
-        try:
-            metrics.compliance_checks_total.labels(rule="finra_2210", outcome=result.verdict.value).inc()
-            for v in result.violations:
-                metrics.compliance_violations_total.labels(rule="finra_2210", severity=v.severity).inc()
-        except Exception:
-            pass
+        safe_inc(metrics.compliance_checks_total, rule="finra_2210", outcome=result.verdict.value)
+        for v in result.violations:
+            safe_inc(metrics.compliance_violations_total, rule="finra_2210", severity=v.severity)
 
 
 def _serialize_review(result: ReviewResult) -> dict[str, Any]:

@@ -17,9 +17,12 @@ Values are opaque bytes or JSON-serialisable Python objects; the
 interface does not enforce a schema.
 
 **Tenant scoping**: keys are NOT automatically tenant-scoped. Callers
-that store per-tenant data must include the tenant id in the key
-(``"risk:{tenant}:{risk_id}"``) and implement ``erase_tenant`` by
-listing-and-deleting the prefix.
+that store per-tenant data must include the tenant id as a
+**colon-delimited segment** in the key (``"risk:{tenant}:{risk_id}"``
+or ``"session:{tenant}:{sid}"``). ``erase_tenant`` matches segments
+exactly — substring matching would conflate tenants whose ids are
+prefixes of each other (``"t"`` vs ``"t1"``). Implementations MUST
+follow this contract.
 """
 
 from __future__ import annotations
@@ -131,17 +134,24 @@ class InMemoryStore:
         return _iter()
 
     async def erase_tenant(self, tenant_id: str, *, key_prefix: str = "") -> int:
-        """Delete every key containing ``:{tenant_id}:`` or ``:{tenant_id}`` suffix.
+        """Delete every key whose colon-delimited segments contain ``tenant_id``.
+
+        Matching is **segment-exact**, not substring. ``"risk:t:r-1"``
+        matches ``tenant_id="t"`` but ``"risk:t1:r-1"`` does not. This
+        prevents cross-tenant deletion when tenant ids share prefixes.
 
         ``key_prefix`` lets callers restrict the sweep to a subsystem's
         namespace (e.g. ``risk:`` or ``session:``).
         """
+        if not tenant_id:
+            return 0
         removed = 0
         async with self._lock:
             for k in list(self._data.keys()):
                 if key_prefix and not k.startswith(key_prefix):
                     continue
-                if f":{tenant_id}:" in k or k.endswith(f":{tenant_id}"):
+                segments = k.split(":")
+                if tenant_id in segments:
                     self._data.pop(k, None)
                     self._expiry.pop(k, None)
                     removed += 1

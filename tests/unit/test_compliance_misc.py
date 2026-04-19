@@ -212,7 +212,7 @@ async def test_legal_hold_blocks_destruction() -> None:
 @pytest.mark.asyncio
 async def test_legal_hold_released_allows_destruction() -> None:
     mgr = LegalHoldManager(store=InMemoryStore())
-    await mgr.issue(LegalHold(hold_id="h-1", keywords=["*"]))
+    await mgr.issue(LegalHold(hold_id="h-1", scope_all=True))
     await mgr.release("h-1", actor="counsel")
     allowed, _ = await mgr.check_destruction_allowed(artifact="x", data_store="s", tenant_id="t")
     assert allowed is True

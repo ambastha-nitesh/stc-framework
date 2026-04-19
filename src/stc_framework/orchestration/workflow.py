@@ -13,11 +13,13 @@ provided) so a crashed workflow can be resumed.
 
 from __future__ import annotations
 
+import asyncio
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from stc_framework._internal.metrics_safe import safe_inc, safe_observe
 from stc_framework.errors import StalwartDispatchFailed, WorkflowBudgetExhausted
 from stc_framework.governance.budget_controls import BurstController
 from stc_framework.governance.events import AuditEvent
@@ -89,6 +91,12 @@ class WorkflowOrchestrator:
         state = WorkflowState(workflow_id=workflow_id, goal=goal, task_requests=list(tasks))
         state.status = "running"
         start = time.perf_counter()
+        # v0.3.0 R12: guard state mutations so parallel dispatch (planned
+        # for the v0.3.1 LangGraph Send-API backend) does not race on
+        # ``state.results`` / ``state.total_cost_usd``. Cheap under the
+        # current sequential SimulationEngine; correct under future
+        # concurrent engines.
+        state_lock = asyncio.Lock()
         await self._emit(AuditEvent.WORKFLOW_STARTED, workflow_id, {"goal": goal, "task_count": len(tasks)})
 
         async def dispatcher(task: dict[str, Any]) -> dict[str, Any]:
@@ -100,9 +108,13 @@ class WorkflowOrchestrator:
                     capability=capability,
                 )
             self._burst.record_llm_call(workflow_id)
-            # Budget check — soft cap on workflow total cost.
-            if state.total_cost_usd >= self._max_cost:
-                raise WorkflowBudgetExhausted(message=f"workflow {workflow_id!r} exceeded budget ${self._max_cost:.2f}")
+            # Budget check — soft cap on workflow total cost. Read
+            # under the lock so parallel dispatchers see a consistent value.
+            async with state_lock:
+                if state.total_cost_usd >= self._max_cost:
+                    raise WorkflowBudgetExhausted(
+                        message=f"workflow {workflow_id!r} exceeded budget ${self._max_cost:.2f}"
+                    )
             t0 = time.perf_counter()
             raw = await entry.dispatch(task)
             duration_ms = (time.perf_counter() - t0) * 1000.0
@@ -114,12 +126,10 @@ class WorkflowOrchestrator:
                 cost_usd=float(raw.get("cost_usd", raw.get("cost", 0.0)) or 0.0),
                 duration_ms=duration_ms,
             )
-            state.results.append(r)
-            state.total_cost_usd += r.cost_usd
-            try:
-                get_metrics().workflow_tasks_total.labels(status=r.status).inc()
-            except Exception:
-                pass
+            async with state_lock:
+                state.results.append(r)
+                state.total_cost_usd += r.cost_usd
+            safe_inc(get_metrics().workflow_tasks_total, status=r.status)
             await self._emit(
                 AuditEvent.WORKFLOW_TASK_COMPLETED,
                 workflow_id,
@@ -141,10 +151,7 @@ class WorkflowOrchestrator:
         state.status = engine_out["status"]
         state.completed_at = datetime.now(timezone.utc).isoformat()
         duration_ms = (time.perf_counter() - start) * 1000.0
-        try:
-            get_metrics().workflow_duration_ms.labels(workflow_type="generic").observe(duration_ms)
-        except Exception:
-            pass
+        safe_observe(get_metrics().workflow_duration_ms, duration_ms, workflow_type="generic")
         if self._store is not None:
             await self._store.set(
                 f"orchestration:workflow:{workflow_id}",

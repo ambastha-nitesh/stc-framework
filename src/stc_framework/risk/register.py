@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+from stc_framework._internal.metrics_safe import safe_set
 from stc_framework._internal.state_machine import StatefulRecord
 from stc_framework.governance.events import AuditEvent
 from stc_framework.infrastructure.store import KeyValueStore
@@ -263,13 +264,12 @@ class RiskRegister:
     def _publish_score(self, record: RiskRecord) -> None:
         rating = record.risk.residual_rating or record.risk.inherent_rating
         numeric = {"low": 1.0, "medium": 2.0, "high": 3.0, "critical": 4.0}[rating.value]
-        try:
-            get_metrics().risk_score.labels(
-                category=record.risk.category.value,
-                tenant=tenant_label(record.risk.tenant_id),
-            ).set(numeric)
-        except Exception:
-            pass
+        safe_set(
+            get_metrics().risk_score,
+            numeric,
+            category=record.risk.category.value,
+            tenant=tenant_label(record.risk.tenant_id),
+        )
 
 
 # ----- serialisation ------------------------------------------------------

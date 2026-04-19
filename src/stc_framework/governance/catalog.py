@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+from stc_framework._internal.metrics_safe import safe_set
 from stc_framework._internal.scoring import dimension_score
 from stc_framework._internal.ttl import is_stale
 from stc_framework.governance.events import AuditEvent
@@ -341,24 +342,24 @@ class DataCatalog:
         await self._audit.emit(record)
 
     def _publish_quality_metric(self, asset_type: str, composite: float) -> None:
-        try:
-            get_metrics().asset_quality_score.labels(asset_type=asset_type).set(composite)
-        except Exception:
-            # Metrics are best-effort; never block catalog ops on a metric registry issue.
-            pass
+        safe_set(get_metrics().asset_quality_score, composite, asset_type=asset_type)
 
 
 # ----- serialisation helpers --------------------------------------------
 
 
-def asdict_safe(obj: Any) -> dict[str, Any]:
-    """Convert a dataclass (including enum values) to a dict suitable for the store."""
+def asdict_safe(obj: DocumentAsset | ModelAsset | PromptAsset | QualityDimensions) -> dict[str, Any]:
+    """Convert a known catalog dataclass (+ embedded enums) to a dict for the store.
+
+    Only the four catalog dataclasses are accepted — the v0.3.0 staff
+    review R6 finding removed the generic ``Any`` signature + unreachable
+    fallback branch.
+    """
     result = _asdict_recursive(obj)
-    if isinstance(result, dict):
-        return result
-    # Defensive: every caller passes a dataclass, so this branch never runs
-    # in practice — but keeps the return type honest for mypy.
-    return {"value": result}
+    # Every catalog dataclass serialises to a dict; the recursive walker
+    # guarantees this by construction.
+    assert isinstance(result, dict), "catalog dataclass did not serialise to a dict"
+    return result
 
 
 def _asdict_recursive(obj: Any) -> Any:

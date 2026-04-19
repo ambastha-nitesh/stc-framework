@@ -18,6 +18,7 @@ so a severe threat can flip the system into DEGRADED automatically.
 
 from __future__ import annotations
 
+import asyncio
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
@@ -25,6 +26,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+from stc_framework._internal.metrics_safe import safe_inc
 from stc_framework.errors import (
     BehavioralAnomalyDetected,
     DDoSDetected,
@@ -140,10 +142,7 @@ class EdgeRateLimiter:
 
     def block(self, ip: str) -> None:
         self._blocked[ip] = time.time() + self._limits.block_duration_seconds
-        try:
-            get_metrics().ip_blocks_total.inc()
-        except Exception:
-            pass
+        safe_inc(get_metrics().ip_blocks_total)
 
     def is_blocked(self, ip: str) -> bool:
         if ip in self._blocked and time.time() >= self._blocked[ip]:
@@ -310,6 +309,9 @@ class ThreatDetectionManager:
         self._audit = audit
         self._store = store
         self._alerts: list[ThreatAlert] = []
+        # Strong references to in-flight audit-emit tasks so the event loop
+        # does not GC them mid-await (see RUF006).
+        self._inflight_audit_tasks: set[asyncio.Task[Any]] = set()
 
     @property
     def rate_limiter(self) -> EdgeRateLimiter:
@@ -417,35 +419,39 @@ class ThreatDetectionManager:
 
     def _record(self, alert: ThreatAlert) -> None:
         self._alerts.append(alert)
+        safe_inc(
+            get_metrics().threats_detected_total,
+            threat_type=alert.threat_type.value,
+            severity=alert.severity.value,
+        )
+        if self._audit is None:
+            return
+        # Fire-and-forget audit emit when invoked from an async context;
+        # if there is no running loop (sync test harness, CLI tool) we
+        # silently drop the emit. Callers that need guaranteed audit
+        # emission should invoke the manager from an async context.
         try:
-            get_metrics().threats_detected_total.labels(
-                threat_type=alert.threat_type.value,
-                severity=alert.severity.value,
-            ).inc()
-        except Exception:
-            pass
-        if self._audit is not None:
-            # Fire-and-forget; the caller's event loop picks it up.
-            import asyncio
-
-            try:
-                asyncio.get_event_loop().create_task(
-                    self._audit.emit(
-                        AuditRecord(
-                            event_type=AuditEvent.THREAT_DETECTED.value,
-                            persona="security",
-                            action=alert.severity.value,
-                            extra={
-                                "threat_type": alert.threat_type.value,
-                                "source": alert.source,
-                                "reason": alert.reason,
-                            },
-                        )
-                    )
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        # Keep a strong reference to the task so it is not GC'd mid-flight;
+        # auto-discarded from the tracking set on completion.
+        task = loop.create_task(
+            self._audit.emit(
+                AuditRecord(
+                    event_type=AuditEvent.THREAT_DETECTED.value,
+                    persona="security",
+                    action=alert.severity.value,
+                    extra={
+                        "threat_type": alert.threat_type.value,
+                        "source": alert.source,
+                        "reason": alert.reason,
+                    },
                 )
-            except RuntimeError:
-                # No running loop — e.g. synchronous test path. Drop silently.
-                pass
+            )
+        )
+        self._inflight_audit_tasks.add(task)
+        task.add_done_callback(self._inflight_audit_tasks.discard)
 
 
 __all__ = [

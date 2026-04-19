@@ -22,6 +22,7 @@ from enum import Enum
 from typing import Any
 
 from stc_framework._internal.alerter import AlertLevel, Thresholds
+from stc_framework._internal.metrics_safe import safe_set
 from stc_framework.governance.events import AuditEvent
 from stc_framework.infrastructure.store import KeyValueStore
 from stc_framework.observability.audit import AuditLogger, AuditRecord
@@ -195,6 +196,25 @@ class KRIEngine:
             await self.register(kri)
 
     async def register(self, kri: KRIDefinition) -> None:
+        # Validate threshold ordering at registration so typos in the
+        # spec surface at boot time, not at the first unexpected
+        # measurement. Silent mis-classification was the v0.3.0 staff
+        # review R4 finding.
+        if kri.direction == "higher_is_worse":
+            if kri.amber >= kri.red:
+                raise ValueError(
+                    f"KRI {kri.kri_id!r}: for direction='higher_is_worse' "
+                    f"amber ({kri.amber}) must be strictly less than red ({kri.red})"
+                )
+        elif kri.direction == "lower_is_worse":
+            if kri.amber <= kri.red:
+                raise ValueError(
+                    f"KRI {kri.kri_id!r}: for direction='lower_is_worse' "
+                    f"amber ({kri.amber}) must be strictly greater than red ({kri.red})"
+                )
+        else:
+            raise ValueError(f"KRI {kri.kri_id!r}: unknown direction {kri.direction!r}")
+
         self._definitions[kri.kri_id] = kri
         await self._store.set(
             _KEY_KRI_DEF.format(kri_id=kri.kri_id),
@@ -302,10 +322,7 @@ class KRIEngine:
                     continue
 
     def _publish_status_metric(self, kri_id: str, status: KRIStatus) -> None:
-        try:
-            get_metrics().kri_status.labels(kri_id=kri_id).set(float(status.numeric))
-        except Exception:
-            pass
+        safe_set(get_metrics().kri_status, float(status.numeric), kri_id=kri_id)
 
 
 __all__ = ["DEFAULT_KRIS", "KRIDefinition", "KRIEngine", "KRIMeasurement", "KRIStatus"]

@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from stc_framework._internal.metrics_safe import safe_inc
 from stc_framework._internal.ttl import TTL
 from stc_framework.errors import SessionExpired
 from stc_framework.governance.events import AuditEvent
@@ -112,10 +113,7 @@ class SessionManager:
                     extra={"session_id": session_id, "data_tier": data_tier, "ttl_seconds": ttl},
                 )
             )
-        try:
-            get_metrics().session_active.labels(backend=self._backend).inc()
-        except Exception:
-            pass
+        safe_inc(get_metrics().session_active, backend=self._backend)
         return meta
 
     async def get_metadata(self, session_id: str) -> SessionMetadata | None:
@@ -136,10 +134,7 @@ class SessionManager:
                     extra={"session_id": session_id},
                 )
             )
-        try:
-            get_metrics().session_active.labels(backend=self._backend).dec()
-        except Exception:
-            pass
+        safe_inc(get_metrics().session_active, amount=-1.0, backend=self._backend)
 
     async def assert_active(self, session_id: str) -> SessionMetadata:
         meta = await self.get_metadata(session_id)
@@ -187,10 +182,7 @@ class SessionManager:
         key = f"cost:{_today_utc()}:{persona}"
         new_micro = await self._store.incr(key, amount=micro, ttl_seconds=48 * 3600)
         total = usd_from_micro(int(new_micro))
-        try:
-            get_metrics().session_cost_usd_total.labels(tenant=tenant_label(tenant_id or None)).inc(usd)
-        except Exception:
-            pass
+        safe_inc(get_metrics().session_cost_usd_total, amount=usd, tenant=tenant_label(tenant_id or None))
         return total
 
     async def check_rate_limit(self, persona: str, *, per_minute_cap: int) -> int:

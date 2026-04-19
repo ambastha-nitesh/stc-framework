@@ -30,6 +30,7 @@ erasure and recall scenarios.
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -198,6 +199,12 @@ class LineageStore:
     def __init__(self, store: KeyValueStore, *, audit: AuditLogger | None = None) -> None:
         self._store = store
         self._audit = audit
+        # Guards the read-modify-write on the secondary indexes so two
+        # concurrent store() calls touching the same document / model /
+        # session index cannot clobber each other's append. The primary
+        # record write is outside the lock — it is keyed by lineage id,
+        # so each record write is already independent.
+        self._index_lock = asyncio.Lock()
 
     async def store(self, record: LineageRecord) -> None:
         if not record.sealed:
@@ -283,13 +290,14 @@ class LineageStore:
         }
 
     async def _append_index(self, key: str, lineage_id: str) -> None:
-        existing = await self._store.get(key) or []
-        if isinstance(existing, list):
-            if lineage_id not in existing:
-                existing.append(lineage_id)
-            await self._store.set(key, existing)
-        else:
-            await self._store.set(key, [lineage_id])
+        async with self._index_lock:
+            existing = await self._store.get(key) or []
+            if isinstance(existing, list):
+                if lineage_id not in existing:
+                    existing.append(lineage_id)
+                await self._store.set(key, existing)
+            else:
+                await self._store.set(key, [lineage_id])
 
 
 # ---- (de)serialisation ----------------------------------------------------

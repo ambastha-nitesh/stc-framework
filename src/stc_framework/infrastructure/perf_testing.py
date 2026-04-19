@@ -29,6 +29,7 @@ from enum import Enum
 from statistics import mean
 from typing import Any
 
+from stc_framework._internal.metrics_safe import safe_inc
 from stc_framework.governance.events import AuditEvent
 from stc_framework.infrastructure.store import KeyValueStore
 from stc_framework.observability.audit import AuditLogger, AuditRecord
@@ -213,10 +214,7 @@ class PerformanceTestRunner:
             "completed_at": datetime.now(timezone.utc).isoformat(),
         }
         for v in violated:
-            try:
-                get_metrics().slo_violations_total.labels(slo_name=v.slo.name).inc()
-            except Exception:
-                pass
+            safe_inc(get_metrics().slo_violations_total, slo_name=v.slo.name)
         if self._audit is not None:
             await self._audit.emit(
                 AuditRecord(

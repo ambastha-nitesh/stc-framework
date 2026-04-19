@@ -26,13 +26,29 @@ from stc_framework.observability.audit import AuditLogger, AuditRecord
 
 @dataclass
 class LegalHold:
+    """A scoped hold that blocks destruction of matching artifacts.
+
+    Scope semantics (v0.3.0 staff review R7 — explicit):
+
+    * ``tenant_ids=[]`` — matches every tenant.
+    * ``data_stores=[]`` — matches every store.
+    * ``keywords=[]`` — matches NO artifacts by default. This is the
+      safe default: an administrator who forgets ``keywords`` does NOT
+      accidentally freeze the entire deployment.
+    * ``scope_all=True`` — blanket hold that matches every artifact
+      regardless of keywords. Must be set explicitly and is intended
+      for maintenance-window freezes or litigation that requires a
+      full preservation order.
+    """
+
     hold_id: str
     matter_id: str = ""
-    tenant_ids: list[str] = field(default_factory=list)  # empty = all tenants
-    data_stores: list[str] = field(default_factory=list)  # empty = all stores
-    keywords: list[str] = field(default_factory=list)  # empty = matches all artifacts
+    tenant_ids: list[str] = field(default_factory=list)
+    data_stores: list[str] = field(default_factory=list)
+    keywords: list[str] = field(default_factory=list)
+    scope_all: bool = False
     start_date: str = ""
-    end_date: str | None = None  # None = open-ended
+    end_date: str | None = None
     issued_by: str = ""
     reason: str = ""
     active: bool = True
@@ -108,9 +124,14 @@ class LegalHoldManager:
                 continue
             if hold.data_stores and data_store and data_store not in hold.data_stores:
                 continue
-            if hold.keywords:
-                if not any(kw.lower() in artifact.lower() for kw in hold.keywords):
-                    continue
+            # Keyword match: either the hold is explicitly blanket
+            # (``scope_all=True``), or one of the declared keywords
+            # appears in the artifact id. An empty keyword list without
+            # ``scope_all`` matches no artifacts — see class docstring.
+            if hold.scope_all or (hold.keywords and any(kw.lower() in artifact.lower() for kw in hold.keywords)):
+                pass
+            else:
+                continue
             return False, hold.hold_id
         return True, None
 
@@ -122,6 +143,7 @@ def _to_dict(hold: LegalHold) -> dict[str, Any]:
         "tenant_ids": list(hold.tenant_ids),
         "data_stores": list(hold.data_stores),
         "keywords": list(hold.keywords),
+        "scope_all": hold.scope_all,
         "start_date": hold.start_date,
         "end_date": hold.end_date,
         "issued_by": hold.issued_by,
@@ -138,6 +160,7 @@ def _from_dict(raw: dict[str, Any]) -> LegalHold:
         tenant_ids=list(raw.get("tenant_ids", [])),
         data_stores=list(raw.get("data_stores", [])),
         keywords=list(raw.get("keywords", [])),
+        scope_all=bool(raw.get("scope_all", False)),
         start_date=raw.get("start_date", ""),
         end_date=raw.get("end_date"),
         issued_by=raw.get("issued_by", ""),

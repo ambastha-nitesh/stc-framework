@@ -10,7 +10,7 @@ can update them without a full code review cycle.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -20,13 +20,20 @@ import yaml
 
 @dataclass(frozen=True)
 class Pattern:
-    """A single pattern entry from a catalog."""
+    """A single pattern entry from a catalog.
+
+    ``metadata`` defaults to an empty dict, not None — callers do
+    ``pattern.metadata.get("category")`` without a None-check. The
+    v0.3.0 staff-review R5 finding caught the original None default
+    that would raise ``AttributeError`` for entries without an explicit
+    ``metadata:`` block in the YAML.
+    """
 
     name: str
     regex: re.Pattern[str]
     severity: str = "medium"
     description: str = ""
-    metadata: dict[str, Any] = None  # type: ignore[assignment]
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def matches(self, text: str) -> bool:
         return bool(self.regex.search(text))

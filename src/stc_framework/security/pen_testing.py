@@ -70,11 +70,14 @@ class PenTestRunner:
         return await self.run_by_category(None)
 
     async def run_by_category(self, category: str | None) -> list[PenTestResult]:
+        # Walk every pattern in the catalog exactly once. The earlier
+        # implementation iterated twice and deduped; the v0.3.0 staff
+        # review R11 finding flagged that as misleading. ``metadata``
+        # is guaranteed to be a dict (see v0.3.0 R5).
         results: list[PenTestResult] = []
-        for pattern in self._catalog.scan("") + [
-            self._catalog.get(name) for name in self._catalog.names()
-        ]:  # ensure each pattern runs regardless of scan match
-            meta = pattern.metadata or {}
+        for name in self._catalog.names():
+            pattern = self._catalog.get(name)
+            meta = pattern.metadata
             pattern_category = str(meta.get("category", "ai_adversarial"))
             if category is not None and category != pattern_category:
                 continue
@@ -94,7 +97,7 @@ class PenTestRunner:
                     )
                 )
                 continue
-            # "blocked" = defence worked (FAIL as attack), "allowed" = gap (PASS as attack).
+            # "blocked" = defence worked (FAIL as attack); "allowed" = gap (PASS as attack).
             test_result = TestResult.PASS if verdict == "allowed" else TestResult.FAIL
             results.append(
                 PenTestResult(
@@ -108,14 +111,7 @@ class PenTestRunner:
                     owasp=str(meta.get("owasp", "")),
                 )
             )
-        # De-duplicate — each pattern is iterated twice above.
-        seen: set[str] = set()
-        unique: list[PenTestResult] = []
-        for r in results:
-            if r.test_id not in seen:
-                seen.add(r.test_id)
-                unique.append(r)
-        return unique
+        return results
 
     @staticmethod
     def summarise(results: list[PenTestResult]) -> dict[str, Any]:
