@@ -37,7 +37,7 @@ COPY src ./src
 COPY spec-examples ./spec-examples
 
 RUN pip install --upgrade pip \
-    && pip install -e ".[${DEPLOYED_SUBSYSTEMS}]"
+    && pip install ".[${DEPLOYED_SUBSYSTEMS}]"
 
 # Download the spaCy model only if the presidio extra is present —
 # a ~1 GB binary we don't want to pull into images that don't use it.
@@ -64,7 +64,8 @@ RUN apt-get update \
     && chown -R stc:stc /mnt/audit /mnt/tokens /var/cache/ld
 
 COPY --from=builder /opt/venv /opt/venv
-COPY --from=builder /src/src /app/src
+# Non-editable install places stc_framework into the venv site-packages;
+# spec-examples ship alongside for local default-spec loads.
 COPY --from=builder /src/spec-examples /app/spec-examples
 
 WORKDIR /app
