@@ -1,0 +1,82 @@
+# LiteLLM Configuration for STC Framework Sentinel Gateway
+#
+# This configuration defines:
+# - Model routing (which models are available, with fallbacks)
+# - Budget controls (per-model and global)
+# - PII masking via Presidio
+# - Spend tracking and observability
+
+model_list:
+  # ── Cloud Models (for public/internal tier data) ────────────────────
+  - model_name: claude-sonnet
+    litellm_params:
+      model: anthropic/claude-sonnet-4-20250514
+      api_key: os.environ/ANTHROPIC_API_KEY
+      max_budget: 20.0
+      budget_duration: 1d
+
+  - model_name: gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+      max_budget: 20.0
+      budget_duration: 1d
+
+  # ── Bedrock Models (for internal tier data within VPC) ──────────────
+  - model_name: bedrock-claude-sonnet
+    litellm_params:
+      model: bedrock/anthropic.claude-sonnet-4-20250514-v1:0
+      aws_access_key_id: os.environ/AWS_ACCESS_KEY_ID
+      aws_secret_access_key: os.environ/AWS_SECRET_ACCESS_KEY
+      aws_region_name: os.environ/AWS_REGION_NAME
+
+  # ── Local Models (for restricted tier data — never leaves boundary) ─
+  - model_name: local-llama
+    litellm_params:
+      model: ollama/llama3.3:70b-instruct
+      api_base: http://ollama:11434
+
+  - model_name: local-mistral
+    litellm_params:
+      model: ollama/mistral-large:latest
+      api_base: http://ollama:11434
+
+# ── General Settings ──────────────────────────────────────────────────
+
+litellm_settings:
+  # Enable Presidio PII masking
+  callbacks: ["presidio"]
+  
+  # Cost tracking
+  success_callback: ["langfuse"]
+  
+  # Global budget
+  max_budget: 50.0
+  budget_duration: 1d
+  
+  # Request timeout
+  request_timeout: 30
+  
+  # Retry on failure
+  num_retries: 2
+
+# ── Router Settings ───────────────────────────────────────────────────
+
+router_settings:
+  routing_strategy: simple-shuffle
+  
+  # Fallback chain: if primary fails, try next
+  fallbacks:
+    - claude-sonnet: [bedrock-claude-sonnet, gpt-4o, local-llama]
+    - gpt-4o: [claude-sonnet, bedrock-claude-sonnet, local-llama]
+    - local-llama: [local-mistral]
+
+# ── General Config ────────────────────────────────────────────────────
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  
+  # Virtual keys for STC personas (created via API at runtime)
+  # stalwart: can call models, tracked separately
+  # trainer: can read spend data, update routing
+  # critic: can call guardrail services

@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Data (don't commit large files)
+*.parquet
+audit-logs/
+
+# Docker volumes
+qdrant_data/
+ollama_data/
+phoenix_data/
+
+# Evaluation results (generated)
+reference-impl/evaluation/*_results.json
+
+# STC local state
+.stc/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS
+.DS_Store
+Thumbs.db

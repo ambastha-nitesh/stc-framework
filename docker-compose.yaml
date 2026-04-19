@@ -64,7 +64,7 @@ services:
     ports:
       - "4000:4000"
     volumes:
-      - ./reference-impl/config/litellm_config.yaml:/app/config.yaml
+      - ./config/litellm_config.yaml:/app/config.yaml
     environment:
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-stc-master-key}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}

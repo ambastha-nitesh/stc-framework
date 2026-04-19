@@ -2,10 +2,101 @@
 
 **From AI Agents to AI Systems: Stalwart · Trainer · Critic**
 
-An open-source architectural framework for building production-grade AI agent systems with built-in optimization, zero-trust governance, data sovereignty, and audit-ready compliance.
+An architectural framework for building production-grade AI agent
+systems with built-in optimization, zero-trust governance, data
+sovereignty, and audit-ready compliance — designed for regulated
+environments (FINRA / SEC / HIPAA / GDPR).
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![AIUC-1 Aligned](https://img.shields.io/badge/AIUC--1-Aligned-green.svg)](docs/aiuc-1-crosswalk/README.md)
+[![AIUC-1 Aligned](https://img.shields.io/badge/AIUC--1-Aligned-green.svg)](docs/architecture/aiuc-1-crosswalk.md)
+
+## What this solves, in one paragraph
+
+Most AI agent frameworks ship a single agent with system prompts for
+different modes and call it a system. That design fails audit: the
+same process that answers a question also evaluates its own answer,
+also decides whether to self-retrain, also holds the keys. STC
+separates those roles into **Stalwart** (execute), **Trainer**
+(optimize), **Critic** (govern), and a **Sentinel** infrastructure
+layer — each with asymmetric authority enforced by module boundaries
+and driven by a signed declarative spec. The result is an agent
+architecture that a regulator can actually certify and a security
+team can actually operate.
+
+## Why this exists
+
+- **Separation of duties is the product.** Regulators, especially in
+  finance, require that the approver is not the actor. A
+  single-process agent cannot provide that.
+- **Production costs drift silently.** A framework that doesn't
+  enforce per-tenant budgets and rate limits discovers problems on
+  the bill, not in the control plane.
+- **Audit must be a first-class artifact.** HMAC-chained, tamper-
+  evident audit with per-event-class retention is load-bearing for
+  SEC 17a-4 / FINRA 4511 / GDPR Art. 30.
+- **Defaults matter more than features.** The default configuration
+  must fail closed in prod. We enforce six invariants at startup —
+  missing any one refuses to boot.
+
+## What we considered and rejected
+
+- **Single-class agent with role prompts.** Rejected — fails
+  separation of duties; confirmation bias in self-grading.
+- **Runtime-mutable config service.** Rejected — admin UIs are
+  attack surfaces and undermine non-repudiation.
+- **Plain SHA-256 audit chain.** Rejected — an attacker with write
+  access can recompute the chain. HMAC requires the key.
+- **Single retention knob for all audit events.** Rejected — a
+  retention number that's right for generic queries is wrong for
+  erasure receipts (6 years) and wrong for chain seals (forever).
+- **"One LLM adapter to rule them all" (e.g. only LiteLLM).** Rejected
+  — adapter pattern lets Bedrock-in-VPC, local Ollama, and a
+  proprietary gateway all coexist without leaking infrastructure
+  decisions into the business code.
+
+## Three things most likely to surprise a new reader
+
+1. **The mock LLM is load-bearing for tests.** `MockLLMClient` labels
+   every response `[mock-llm]`. Seeing that tag in a production audit
+   record is a P0 — someone bypassed the `STC_ENV=prod` guard.
+2. **`erase_tenant` is either a real deletion OR a refusal.** The
+   JSONL backend deletes (GDPR Art. 17). The WORM backend raises
+   `ComplianceViolation` (SEC 17a-4). They're both correct, for
+   different deployments. Do not try to unify them.
+3. **Correlation fields live in `contextvars`, not function
+   arguments.** `trace_id`, `tenant_id`, `persona` etc. flow through
+   `ContextVar` instances. Logs, spans, and audit records read from
+   the same snapshot. Threading these through every function
+   signature would be a maintenance tax with no safety benefit.
+
+---
+
+## For new readers
+
+- [Architecture](docs/ARCHITECTURE.md) — how the pieces fit, with
+  Mermaid diagrams.
+- [Guided tour](docs/GUIDED_TOUR.md) — 10-minute newcomer walkthrough.
+- [Glossary](docs/GLOSSARY.md) — every domain term defined.
+- [First-week FAQ](docs/FAQ.md) — the 13 questions people actually ask.
+- [Gotchas](docs/GOTCHAS.md) — things that look like bugs but aren't.
+- [Decisions](docs/DECISIONS.md) — five ADRs covering the load-bearing
+  choices.
+- [Runbook](docs/operations/RUNBOOK.md) — prod deployment, alerts,
+  incident response.
+- [Contributing](CONTRIBUTING.md) — five step-by-step recipes for the
+  most common changes.
+
+## For security / compliance reviewers
+
+- [Security audit](docs/security/SECURITY_AUDIT.md) — cybersecurity
+  review with regressions.
+- [Governance audit](docs/security/GOVERNANCE_AUDIT.md) — data
+  privacy, retention, DSAR, erasure; GDPR / CCPA / HIPAA / SOC 2 /
+  AIUC-1 crosswalk.
+- [Enterprise readiness](docs/operations/ENTERPRISE_READINESS.md) —
+  observability, budget, idempotency, fail-fast startup.
+- [Staff review](docs/security/STAFF_REVIEW.md) — senior code review
+  rounds, pre-deployment review for regulated environments.
 
 ---
 
@@ -117,44 +208,111 @@ The repository includes a complete, production-ready reference implementation: a
 
 **Measured improvement**: After running with the Trainer active, the system demonstrates measurable gains in retrieval precision, answer accuracy, and cost efficiency versus baseline.
 
-### Quick Start
+### Install
 
 ```bash
-# Clone the repository
-git clone https://github.com/stc-framework/stc-framework.git
-cd stc-framework
+# Minimal install — works out of the box with zero-dependency defaults
+# (mock LLM, hash embedder, in-memory vector store, JSONL audit).
+pip install stc-framework
 
-# Copy and configure the environment
-cp .env.example .env
-# Edit .env with your API keys and configuration
+# Full stack with every optional integration
+pip install "stc-framework[all]"
 
-# Start the full STC system
+# Just the HTTP service facade
+pip install "stc-framework[service]"
+
+# Development
+pip install -e ".[dev]"
+```
+
+### Use as a library
+
+```python
+from stc_framework import STCSystem
+
+system = STCSystem.from_spec("spec-examples/financial_qa.yaml")
+result = system.query("What was Acme Corp's FY2024 revenue?")
+
+print(result.response)
+print(result.governance["action"])   # pass | warn | block | escalate
+print(result.metadata["model_used"])
+print(result.metadata["citations"])
+```
+
+Async consumers use `aquery`:
+
+```python
+import asyncio
+from stc_framework import STCSystem
+
+async def main():
+    system = STCSystem.from_env()
+    await system.astart()
+    try:
+        result = await system.aquery("What was revenue?", tenant_id="acme-1")
+        print(result.response)
+    finally:
+        await system.astop()
+
+asyncio.run(main())
+```
+
+### Run as a service
+
+```bash
+pip install -e ".[service]"
+gunicorn -k gthread --threads 8 -w 4 \
+    --bind 0.0.0.0:8000 \
+    "stc_framework.service.wsgi:application"
+
+curl http://localhost:8000/healthz
+curl -X POST http://localhost:8000/v1/query \
+    -H "X-Tenant-Id: acme-1" -H "Content-Type: application/json" \
+    -d '{"query": "What was FY2024 revenue?"}'
+curl http://localhost:8000/metrics
+```
+
+### Full stack with Docker
+
+```bash
+cp .env.example .env   # fill in provider keys if you want real LLMs
 docker-compose up -d
 
-# Load sample financial documents (public SEC filings)
-python reference-impl/scripts/load_documents.py
-
-# Run the baseline evaluation
-python reference-impl/evaluation/run_baseline.py
-
-# Start the interactive Q&A interface
-python reference-impl/scripts/run_agent.py
-
-# After running queries, check the Trainer's optimization dashboard
-open http://localhost:6006  # Phoenix UI
-open http://localhost:3000  # Langfuse UI
+# Inside your Python environment:
+pip install -e ".[all]"
+stc-baseline --spec spec-examples/financial_qa.yaml
+stc-agent --spec spec-examples/financial_qa.yaml
 ```
+
+## Configuration
+
+The framework is configured via the declarative spec (example:
+[`spec-examples/financial_qa.yaml`](spec-examples/financial_qa.yaml)) and
+environment variables (prefix `STC_`):
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `STC_SPEC_PATH` | `spec-examples/financial_qa.yaml` | Spec to load with `STCSystem.from_env()` |
+| `STC_ENV` | `dev` | `dev`, `staging`, `prod` |
+| `STC_LOG_FORMAT` | `json` | `json` or `text` |
+| `STC_LOG_CONTENT` | `false` | Include request/response bodies in logs (risk) |
+| `STC_OTLP_ENDPOINT` | *(unset)* | OTLP gRPC endpoint for traces |
+| `STC_METRICS_PORT` | `9090` | Prometheus exposition port |
+| `STC_LLM_ADAPTER` | `mock` | `mock` or `litellm` |
+| `STC_VECTOR_ADAPTER` | `in_memory` | `in_memory` or `qdrant` |
+| `STC_EMBEDDING_ADAPTER` | `hash` | `hash`, `ollama`, `openai` |
+| `STC_PRESIDIO_ENABLED` | `true` | Turn off when Presidio is unavailable |
+| `STC_LLM_TIMEOUT_SEC` | `30` | Per-call LLM timeout |
+| `STC_LLM_BULKHEAD` | `64` | Max concurrent LLM calls |
+| `STC_LLM_CIRCUIT_FAIL_MAX` | `5` | Failures before circuit opens |
 
 ## Documentation
 
-- [Architecture Deep Dive](docs/architecture/README.md)
-- [Declarative Specification Reference](spec/README.md)
-- [AIUC-1 Compliance Crosswalk](docs/aiuc-1-crosswalk/README.md)
-- [Stalwart: Building Your Agent](stalwart/README.md)
-- [Trainer: Optimization Guide](trainer/README.md)
-- [Critic: Governance Configuration](critic/README.md)
-- [Sentinel: Security & Data Sovereignty](sentinel/README.md)
-- [Reference Implementation Guide](reference-impl/README.md)
+- [Architecture](docs/architecture/README.md)
+- [Operations](docs/operations/) — deployment, observability, resilience, scaling, multitenancy
+- [Reference Implementation: Financial Q&A](src/stc_framework/reference_impl/financial_qa/)
+- [Example spec](spec-examples/financial_qa.yaml)
+- [AIUC-1 compliance mapping](docs/architecture/aiuc-1-crosswalk.md)
 
 ## Origin
 
