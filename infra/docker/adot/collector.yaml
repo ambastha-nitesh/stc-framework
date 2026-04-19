@@ -1,0 +1,75 @@
+# AWS Distro for OpenTelemetry Collector config.
+#
+# Mounted into the ``adot-collector`` sidecar container at
+# ``/etc/otel/config.yaml``. The task role SigV4-signs the AMP write;
+# the CloudWatch Logs exporter uses the log group created by the
+# observability Terraform module.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # Scrape the STC process's Prometheus endpoint on loopback. The
+  # :9090 port is inside the same task so localhost reaches it.
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: stc-framework
+          scrape_interval: 15s
+          static_configs:
+            - targets: ["127.0.0.1:9090"]
+
+processors:
+  batch:
+    send_batch_size: 512
+    timeout: 5s
+
+  resourcedetection:
+    detectors: [env, ecs, system]
+    timeout: 2s
+    override: false
+
+exporters:
+  # AMP (AWS Managed Prometheus). ``region`` + ``endpoint`` come from
+  # the task environment variables AOT_AMP_REGION / AOT_AMP_ENDPOINT.
+  prometheusremotewrite:
+    endpoint: ${env:AOT_AMP_ENDPOINT}
+    auth:
+      authenticator: sigv4auth
+
+  awscloudwatchlogs:
+    region: ${env:AWS_REGION}
+    log_group_name: ${env:AOT_LOG_GROUP}
+    log_stream_name: ${env:AOT_LOG_STREAM}
+
+  # Useful in dev for ``docker compose logs adot-collector``.
+  debug:
+    verbosity: normal
+
+extensions:
+  sigv4auth:
+    region: ${env:AWS_REGION}
+    service: aps
+
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [sigv4auth, health_check]
+  pipelines:
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [batch, resourcedetection]
+      exporters: [prometheusremotewrite, debug]
+    traces:
+      receivers: [otlp]
+      processors: [batch, resourcedetection]
+      exporters: [awscloudwatchlogs, debug]
+    logs:
+      receivers: [otlp]
+      processors: [batch, resourcedetection]
+      exporters: [awscloudwatchlogs]
