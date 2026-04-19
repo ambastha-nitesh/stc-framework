@@ -4,6 +4,186 @@ All notable changes to this project are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - Unreleased — capability completion
+
+Ports every module previously parked in ``experimental/`` into the
+supported ``src/stc_framework/`` package at the v0.2.0 quality bar
+(async-first, typed, tested, observability-integrated). No hot-path
+behaviour change for v0.2.0 workloads — every new subsystem is
+opt-in through its own spec section (all default to disabled).
+
+### Added — foundations (Phase 0)
+
+- ``errors.py`` extensions: ``ComplianceViolation`` / ``FINRARuleViolation`` /
+  ``RegBIUnsuitable`` / ``DisclosureMissing`` / ``LegalHoldActive``;
+  ``RiskAssessmentError`` / ``KRIRedVeto`` / ``RiskAppetiteBreach`` /
+  ``RiskOptimizerVeto``; ``ThreatDetected`` / ``DDoSDetected`` /
+  ``HoneyTokenTriggered`` / ``BehavioralAnomalyDetected``;
+  ``OrchestrationError`` / ``WorkflowBudgetExhausted`` /
+  ``StalwartDispatchFailed`` / ``WorkflowCriticRejected``;
+  ``SessionStateError`` / ``SessionExpired`` / ``SessionBackendUnavailable``.
+  HTTP status-code mappings extended (423 Locked for legal hold, 440 for
+  session expiry, etc.).
+- ``AuditEvent`` extended with 30 new canonical event names spanning
+  compliance, risk, threats, orchestration, catalog/lineage, and
+  session/perf.
+- ``STCMetrics`` extended with 12 new Prometheus metrics:
+  ``stc_compliance_checks_total``, ``stc_compliance_violations_total``,
+  ``stc_risk_score``, ``stc_kri_status``, ``stc_threats_detected_total``,
+  ``stc_ip_blocks_total``, ``stc_workflow_duration_ms``,
+  ``stc_workflow_tasks_total``, ``stc_session_active``,
+  ``stc_session_cost_usd_total``, ``stc_slo_violations_total``,
+  ``stc_asset_quality_score``.
+- ``spec.models`` extended with ``CompliancePolicySpec``,
+  ``SovereigntySpec``, ``RiskAppetiteSpec``, ``OrchestrationSpec``,
+  ``ThreatDetectionSpec``, ``SessionStateSpec``, ``PerfSpec``. All
+  optional; pre-v0.3.0 specs load unchanged.
+- ``stc_framework._internal``: shared helpers — ``StatefulRecord``
+  transition-logged state machine, ``ThresholdAlerter`` with
+  GREEN/AMBER/RED hysteresis, ``WeightedScore`` + EEOC 4/5ths
+  fairness ratio, YAML-backed ``PatternCatalog`` loader, ``TTL``
+  deadline arithmetic.
+- ``stc_framework.infrastructure.store``: ``KeyValueStore`` async
+  Protocol with an in-memory default. Phase-1..5 subsystems route all
+  persistent state through this so Redis (or any backend) can be swapped
+  in without touching subsystem code.
+
+### Added — governance (Phase 1)
+
+- ``governance/catalog.py``: ``DataCatalog`` — six-dimension weighted
+  quality scoring (accuracy-dominant), document/model/prompt registries,
+  freshness-SLA sweep with auto-STALE transitions, quality-threshold
+  auto-quarantine.
+- ``governance/lineage.py``: ``LineageBuilder`` + ``LineageStore`` —
+  incremental request-lineage graph (sources → embedding → retrieval →
+  context → generation → validation → response). ``lineage_id`` is the
+  OTel trace_id. Indexes by document/model/session; ``impact_analysis``
+  for DSAR blast-radius queries.
+- ``governance/destruction.py``: ``SecureDestruction`` utilities — DoD-style
+  three-pass overwrite with cryptographic random on the final pass,
+  ``crypto_erase``, ``verify_destruction``. ``destroy_with_hold_check``
+  consults the Phase-3 ``LegalHoldChecker`` and emits
+  ``DESTRUCTION_BLOCKED_BY_HOLD`` when denied.
+- ``governance/budget_controls.py``: ``TokenGovernor`` (input/output
+  caps + per-persona daily quota), ``BurstController`` (per-workflow
+  LLM-call cap — catches runaway loops), ``CostCircuitBreaker``
+  (five-band ladder normal → warn → throttle → pause → halt).
+- ``governance/anomaly.py``: ``CostAnomalyDetector`` — rolling-mean
+  per-model cost spike detector built on ``ThresholdAlerter``.
+
+### Added — risk (Phase 2)
+
+- ``risk/register.py``: ``RiskRegister`` — ISO 31000 lifecycle
+  (identified → assessed → treatment_planned → accepted → monitoring →
+  closed/escalated) with 5x5 likelihood-by-impact matrix and declared
+  ``RISK_TRANSITIONS`` table. Inherent vs residual rating; heat map;
+  full transition history.
+- ``risk/kri.py``: ``KRIEngine`` with a 12-indicator default catalog
+  (accuracy, hallucination rate, PII leak, sovereignty violations,
+  budget saturation, latency p95, availability, guardrail failure rate,
+  critic escalation rate, queue depth, vendor concentration, model
+  drift). GREEN/AMBER/RED classification; RED transitions
+  auto-escalate linked risks via caller callback.
+- ``risk/optimizer.py``: ``RiskAdjustedOptimizer`` — four evaluators
+  (provenance, sovereignty, vendor concentration, KRI) with
+  ``VetoReason`` enum. Composite scoring = accuracy·w_a + cost·w_c +
+  (1−risk)·w_r with configurable weights. All-vetoed raises
+  ``RiskOptimizerVeto``.
+
+### Added — compliance (Phase 3)
+
+- ``compliance/patterns.py`` + ``compliance/data/*.yaml``: YAML-backed
+  FINRA violation phrases + IP trademark catalogs. Legal teams update
+  YAML directly.
+- ``compliance/rule_2210.py``: ``Rule2210Engine`` with pattern detection,
+  fair-balance scoring (``min(pos,risk) / max(pos,risk)``), disclosure
+  verification, and a principal-approval queue for retail
+  communications. Critical violations raise ``FINRARuleViolation``.
+- ``compliance/reg_bi.py``: ``RegBICheckpoint`` — product-class risk
+  detection against a ``CustomerProfile``.
+- ``compliance/nydfs_notification.py``: ``NYDFSNotificationEngine`` —
+  72-hour deadline tracker with AMBER at <24h remaining, RED at <4h,
+  OVERDUE at 0.
+- ``compliance/part_500_cert.py``: Evidence + gap assembler across the
+  17 NYDFS Part 500 sections.
+- ``compliance/bias_fairness.py``: EEOC 4/5ths disparate-impact monitor
+  across demographic groups.
+- ``compliance/ip_risk.py``: Pattern-catalog IP infringement scanner.
+- ``compliance/transparency.py``: Idempotent disclosure stamping +
+  per-customer consent registry.
+- ``compliance/privilege_routing.py``: Attorney-client privilege
+  keyword detector that forces ``local_only`` routing.
+- ``compliance/fiduciary.py``: Per-tier model-usage fairness detector.
+- ``compliance/legal_hold.py``: ``LegalHoldManager`` implementing the
+  ``LegalHoldChecker`` protocol — destruction sweeps honour active
+  holds automatically.
+- ``compliance/explainability.py``: Seven-step narrative generator
+  over a sealed ``LineageRecord``.
+- ``compliance/sovereignty/``: ``ModelOriginPolicy`` (geopolitical
+  risk), ``QueryPatternProtector`` (per-provider entity-concentration
+  detector), ``StateComplianceMatrix`` (CO/CA/TX/IL/NY/UT extensible),
+  ``InferenceJurisdictionEnforcer`` (FIPS-required-for-restricted).
+
+### Added — security + orchestration (Phase 4)
+
+- ``security/patterns.py`` + ``security/data/*.yaml``: Shared threat
+  pattern + pen-test payload catalogs with MITRE ATLAS + OWASP LLM
+  Top 10 metadata.
+- ``security/threat_detection.py``: ``ThreatDetectionManager`` +
+  ``EdgeRateLimiter`` (per-minute / per-hour / cost-exhaustion windows
+  + IP blocklist), ``BehavioralAnalyzer`` (per-session trajectory),
+  ``DeceptionEngine`` (honey docs/tokens/canaries). Critical alerts
+  push ``DegradationState`` → DEGRADED automatically.
+- ``security/pen_testing.py``: ``PenTestRunner`` producing MITRE/OWASP
+  -tagged ``PenTestResult`` records with compliance-ready
+  ``summarise()`` output.
+- ``orchestration/registry.py``: ``StalwartRegistry`` with capability-tag
+  lookup picking lowest-cost-weight match.
+- ``orchestration/simulation.py``: Dependency-resolving task runner —
+  propagates typed ``OrchestrationError`` subclasses to callers while
+  capturing generic probe failures per ``fail_fast`` policy.
+- ``orchestration/workflow.py``: ``WorkflowOrchestrator`` wiring
+  registry + simulation + ``BurstController`` + cost cap + audit +
+  store. Budget cap raises ``WorkflowBudgetExhausted``.
+
+### Added — infrastructure (Phase 5)
+
+- ``infrastructure/session_state.py``: ``SessionManager`` over
+  ``KeyValueStore``. Key namespaces match experimental prototype so
+  dashboards keep working. Cost stored in micro-dollars for atomic
+  incr. ``assert_active`` raises ``SessionExpired``.
+- ``infrastructure/perf_testing.py``: ``PerformanceTestRunner`` —
+  four ``LoadProfile`` levels (baseline / peak / stress / soak),
+  p50/p95/p99 + error-rate + RPS summary, ``validate_slos`` with
+  direction-aware comparison, ``regression_check`` vs. the previous
+  stored run, pure-function ``capacity_model`` headroom calculator.
+
+### Changed
+
+- ``pyproject.toml`` bundles ``compliance/data/*.yaml`` and
+  ``security/data/*.yaml`` as package data so wheel installs carry
+  the default catalogs.
+
+### Testing
+
+- 155 new tests across unit + contract suites (55 Phase 0 + 45 Phase 1
+  + 25 Phase 2 + 42 Phase 3 + 23 Phase 4 + 20 Phase 5). Contract suite
+  for ``KeyValueStore`` is parametrised over implementations so a
+  future ``RedisStore`` slots in without duplicating test bodies.
+
+### Not in this release (deferred to v0.3.1+)
+
+- Direct integration of compliance / threat-detection / risk-optimizer
+  hooks into ``STCSystem.aquery`` execution order. Subsystems are
+  importable and fully tested; integrating them into the hot path
+  requires cross-subsystem tests out of scope for v0.3.0.
+- Redis backend implementation of ``KeyValueStore``. Protocol + contract
+  tests are ready; the implementation ships behind a ``[session]`` extra
+  in v0.3.1.
+- LangGraph ``StateGraph`` backend for ``WorkflowOrchestrator``
+  (pure-Python ``SimulationEngine`` ships in v0.3.0; LangGraph wrapper
+  is a v0.3.1 addition).
+
 ## [0.2.0] - Unreleased
 
 ### Added
