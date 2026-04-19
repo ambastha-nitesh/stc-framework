@@ -6,10 +6,38 @@ can swap in Redis, a database, or any backend that implements the
 :class:`~stc_framework.infrastructure.store.KeyValueStore` protocol.
 """
 
+from stc_framework.infrastructure.perf_testing import (
+    DEFAULT_PROFILES,
+    DEFAULT_SLOS,
+    LoadConfig,
+    LoadProfile,
+    PerformanceTestRunner,
+    SLODefinition,
+)
+from stc_framework.infrastructure.session_state import (
+    SessionManager,
+    SessionMetadata,
+    usd_from_micro,
+    usd_to_micro,
+)
 from stc_framework.infrastructure.store import (
     InMemoryStore,
     KeyValueStore,
     StoreError,
 )
 
-__all__ = ["InMemoryStore", "KeyValueStore", "StoreError"]
+__all__ = [
+    "DEFAULT_PROFILES",
+    "DEFAULT_SLOS",
+    "InMemoryStore",
+    "KeyValueStore",
+    "LoadConfig",
+    "LoadProfile",
+    "PerformanceTestRunner",
+    "SLODefinition",
+    "SessionManager",
+    "SessionMetadata",
+    "StoreError",
+    "usd_from_micro",
+    "usd_to_micro",
+]
