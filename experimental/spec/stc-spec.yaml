@@ -1,0 +1,443 @@
+# STC Framework - Declarative Specification
+# Reference Implementation: Financial Document Q&A Agent
+# Version: 1.0.0
+
+version: "1.0.0"
+name: "financial-doc-qa"
+description: "AI-powered Q&A agent for financial documents with full STC governance"
+created: "2026-03-08"
+author: "STC Framework"
+
+# ============================================================================
+# STALWART CONFIGURATION (Execution Plane)
+# ============================================================================
+stalwart:
+  framework: langgraph
+  workflow: "stalwart.workflows.financial_qa"
+  
+  permitted_tools:
+    - name: calculator
+      description: "Financial calculations (ratios, percentages, growth rates)"
+      risk_tier: public
+    - name: date_resolver
+      description: "Resolve relative dates ('last quarter', 'FY2025')"
+      risk_tier: public
+    - name: document_retriever
+      description: "Retrieve chunks from local vector store"
+      risk_tier: restricted
+    - name: table_extractor
+      description: "Extract structured data from financial tables"
+      risk_tier: internal
+  
+  mcp_servers: []  # No external MCP servers for this implementation
+  
+  memory:
+    type: conversation
+    max_turns: 20
+    persistence: session_only  # No cross-session memory for financial data
+  
+  auth:
+    key_scope: "stalwart-exec"
+    permissions:
+      - "llm:call"
+      - "tool:invoke"
+      - "vectorstore:read"
+      - "memory:read"
+      - "memory:write"
+
+# ============================================================================
+# TRAINER CONFIGURATION (Optimization & Control Plane)
+# ============================================================================
+trainer:
+  optimization:
+    engine: agent_lightning
+    algorithm: grpo
+    reward_signals:
+      - name: user_feedback
+        type: explicit
+        weight: 0.4
+        description: "Thumbs up/down from user"
+      - name: factual_accuracy
+        type: automated
+        weight: 0.4
+        description: "Extracted numbers match source documents"
+      - name: retrieval_quality
+        type: automated
+        weight: 0.2
+        description: "Semantic similarity between query and retrieved chunks"
+    
+    optimization_loops:
+      - name: retrieval_optimization
+        frequency: daily
+        targets: ["chunk_size", "top_k", "reranking_weights"]
+        metric: retrieval_precision
+      - name: prompt_optimization
+        frequency: weekly
+        engine: agent_lightning_apo
+        targets: ["system_prompt", "few_shot_examples"]
+        metric: answer_accuracy
+      - name: model_routing
+        frequency: daily
+        targets: ["model_selection_per_task_type"]
+        metric: cost_normalized_accuracy
+  
+  cost_thresholds:
+    max_per_task_usd: 0.05
+    daily_budget_usd: 50.00
+    monthly_budget_usd: 1200.00
+    alert_at_percent: 80
+  
+  maintenance_triggers:
+    accuracy_below: 0.85
+    cost_above_per_task_usd: 0.10
+    hallucination_rate_above: 0.05
+    latency_p95_above_ms: 5000
+  
+  maintenance_mode:
+    action: degrade  # degrade | pause | alert_only
+    notification: ["trainer_dashboard", "slack_webhook"]
+  
+  auth:
+    key_scope: "trainer-control"
+    permissions:
+      - "traces:read"
+      - "routing:write"
+      - "prompts:write"
+      - "models:evaluate"
+      - "config:update"
+
+# ============================================================================
+# CRITIC CONFIGURATION (Zero-Trust Governance Plane)
+# ============================================================================
+critic:
+  guardrails:
+    orchestrator: nemo_guardrails
+    
+    input_rails:
+      - name: prompt_injection_detection
+        engine: nemo
+        action: block
+        severity: critical
+      - name: pii_input_scan
+        engine: presidio
+        action: redact
+        entities: [PERSON, CREDIT_CARD, US_SSN, EMAIL_ADDRESS, PHONE_NUMBER]
+    
+    output_rails:
+      - name: hallucination_detection
+        engine: guardrails_ai
+        validator: "guardrails/provenance_llm"
+        threshold: 0.8
+        action: block
+        severity: critical
+      - name: numerical_accuracy
+        engine: custom
+        validator: "critic.validators.numerical_accuracy"
+        description: "Compare numbers in response against source documents"
+        tolerance_percent: 1.0
+        action: block
+        severity: critical
+      - name: pii_output_scan
+        engine: presidio
+        action: redact
+        entities: [PERSON, CREDIT_CARD, US_SSN, US_BANK_NUMBER, EMAIL_ADDRESS]
+      - name: investment_advice_detection
+        engine: guardrails_ai
+        validator: "guardrails/restricttotopic"
+        prohibited_topics: ["investment_recommendations", "buy_sell_hold", "portfolio_allocation"]
+        action: block
+        severity: high
+      - name: toxicity_check
+        engine: nemo
+        model: "content_safety"
+        threshold: 0.7
+        action: block
+        severity: medium
+      - name: scope_check
+        engine: guardrails_ai
+        validator: "guardrails/restricttotopic"
+        allowed_topics: ["financial_data", "document_content", "calculations", "comparisons"]
+        action: warn
+        severity: low
+  
+  escalation:
+    degraded_mode:
+      trigger: "2 critical failures in 10 tasks"
+      action: "Add disclaimer to responses; require source citations"
+    quarantine_mode:
+      trigger: "3 critical failures in 10 tasks"
+      action: "Hold responses for human review before delivery"
+    suspension:
+      trigger: "5 critical failures in 10 tasks"
+      action: "Suspend all personas; require human reset"
+    circuit_breaker:
+      trigger: "3 consecutive failures"
+      cooldown_seconds: 300
+      auto_retry: true
+  
+  auth:
+    key_scope: "critic-governance"
+    permissions:
+      - "traces:read"
+      - "guardrails:invoke"
+      - "escalation:trigger"
+      - "feedback:submit_to_trainer"
+
+# ============================================================================
+# SENTINEL LAYER (Infrastructure — not an agent)
+# ============================================================================
+sentinel:
+  gateway:
+    engine: litellm
+    host: "http://localhost:4000"
+    
+  pii_redaction:
+    engine: presidio
+    mode: during_call
+    entities_config:
+      PERSON: MASK
+      CREDIT_CARD: BLOCK
+      US_SSN: BLOCK
+      US_BANK_NUMBER: BLOCK
+      EMAIL_ADDRESS: MASK
+      PHONE_NUMBER: MASK
+    custom_recognizers:
+      - name: account_number
+        regex: "\\b[A-Z]{2}\\d{8}\\b"
+        tier: restricted
+      - name: cusip
+        regex: "\\b[A-Za-z0-9]{9}\\b"
+        context_words: ["CUSIP", "cusip", "security"]
+        tier: restricted
+  
+  tokenization:
+    enabled: true
+    strategy: surrogate
+    reversible: true
+    token_map_storage: local_encrypted
+  
+  auth:
+    virtual_keys: true
+    key_rotation_days: 90
+    persona_keys:
+      stalwart: "sk-stalwart-${ENV_KEY}"
+      trainer: "sk-trainer-${ENV_KEY}"
+      critic: "sk-critic-${ENV_KEY}"
+  
+  trusted_agents: []
+  mcp_access_policy: []
+
+# ============================================================================
+# DATA SOVEREIGNTY
+# ============================================================================
+data_sovereignty:
+  default_routing: vpc_only
+  
+  embedding_model:
+    provider: local
+    model: "bge-large-en-v1.5"
+    endpoint: "http://localhost:11434"
+  
+  vector_store:
+    provider: qdrant
+    location: local
+    host: "http://localhost:6333"
+    collection_policies:
+      financial_docs:
+        tier: restricted
+        ttl_days: 365
+      public_filings:
+        tier: internal
+        ttl_days: 730
+  
+  classification:
+    engines:
+      - presidio
+      - custom_patterns
+    custom_patterns:
+      - name: account_number
+        regex: "\\b\\d{3}-\\d{7}\\b"
+        tier: restricted
+      - name: advisor_code
+        regex: "\\bADV\\d{5}\\b"
+        tier: restricted
+      - name: client_portfolio
+        keywords: ["holdings", "positions", "AUM", "net worth", "account balance"]
+        tier: restricted
+      - name: internal_strategy
+        keywords: ["internal memo", "confidential", "proprietary", "trade secret"]
+        tier: restricted
+  
+  routing_policy:
+    restricted:
+      - "local/llama-3.3-70b-instruct"
+      - "local/mistral-large-instruct"
+    internal:
+      - "bedrock/claude-sonnet"
+      - "local/llama-3.3-70b-instruct"
+    public:
+      - "openai/gpt-4o"
+      - "anthropic/claude-sonnet"
+      - "bedrock/claude-sonnet"
+      - "local/llama-3.3-70b-instruct"
+  
+  boundary_audit:
+    log_all_crossings: true
+    alert_on_tier_violation: true
+
+# ============================================================================
+# OBSERVABILITY & AUDIT
+# ============================================================================
+audit:
+  trace_backend: arize_phoenix
+  phoenix_host: "http://localhost:6006"
+  
+  prompt_registry:
+    engine: langfuse
+    host: "http://localhost:3000"
+    link_prompts_to_traces: true
+  
+  retention_days: 365
+  
+  export:
+    enabled: true
+    destination: "local://audit-logs/"
+    format: parquet
+    schedule: daily
+  
+  immutable: true
+  
+  trace_enrichment:
+    include_spec_version: true
+    include_prompt_version: true
+    include_model_id: true
+    include_cost: true
+    include_data_tier: true
+
+# ============================================================================
+# RISK TAXONOMY (Application-Specific)
+# ============================================================================
+risk_taxonomy:
+  harmful:
+    - category: investment_advice
+      severity: critical
+      description: "Agent provides specific buy/sell/hold recommendations"
+      guardrail: investment_advice_detection
+    - category: unauthorized_disclosure
+      severity: critical
+      description: "Agent reveals restricted data to unauthorized parties"
+      guardrail: pii_output_scan
+    - category: fabricated_financial_data
+      severity: critical
+      description: "Agent invents numbers not present in source documents"
+      guardrail: numerical_accuracy
+  
+  out_of_scope:
+    - category: non_financial_queries
+      severity: medium
+      description: "Questions unrelated to uploaded financial documents"
+      guardrail: scope_check
+    - category: competitor_analysis
+      severity: low
+      description: "Requests to compare against competitors not in documents"
+      guardrail: scope_check
+  
+  hallucination:
+    - category: fabricated_numbers
+      severity: critical
+      description: "Revenue, earnings, or ratio figures not in source"
+      guardrail: numerical_accuracy
+    - category: fabricated_citations
+      severity: high
+      description: "References to pages or sections that don't exist"
+      guardrail: hallucination_detection
+    - category: temporal_confusion
+      severity: high
+      description: "Mixing data from different reporting periods"
+      guardrail: hallucination_detection
+
+# ============================================================================
+# COMPLIANCE MAPPING (AIUC-1)
+# ============================================================================
+compliance:
+  aiuc_1:
+    # A. Data & Privacy
+    A001_input_data_policy:
+      control: data_sovereignty.classification
+      evidence: audit.trace_backend
+      status: implemented
+    A002_output_data_policy:
+      control: critic.guardrails.output_rails
+      evidence: audit.trace_backend
+      status: implemented
+    A003_limit_data_collection:
+      control: stalwart.memory.persistence
+      evidence: audit.trace_enrichment
+      status: implemented
+    A004_protect_ip:
+      control: data_sovereignty.tokenization
+      evidence: audit.boundary_audit
+      status: implemented
+    A005_prevent_cross_customer:
+      control: sentinel.auth.virtual_keys
+      evidence: audit.trace_backend
+      status: implemented
+    A006_prevent_pii:
+      control: sentinel.pii_redaction
+      evidence: audit.trace_backend
+      status: implemented
+    A007_prevent_ip_violations:
+      control: critic.guardrails.output_rails.scope_check
+      evidence: audit.trace_backend
+      status: implemented
+    
+    # B. Security
+    B_adversarial_robustness:
+      control: adversarial.garak_testing
+      evidence: adversarial.test_reports
+      status: implemented
+      testing_cadence: quarterly
+    
+    # C. Safety
+    C001_risk_taxonomy:
+      control: risk_taxonomy
+      evidence: spec.risk_taxonomy
+      status: implemented
+    C_pre_deployment_testing:
+      control: reference-impl.evaluation
+      evidence: evaluation.reports
+      status: implemented
+    C_prevent_harmful_outputs:
+      control: critic.guardrails
+      evidence: audit.trace_backend
+      status: implemented
+    
+    # D. Reliability
+    D_predictable_behavior:
+      control: trainer.optimization
+      evidence: trainer.performance_metrics
+      status: implemented
+    D_error_handling:
+      control: critic.escalation
+      evidence: audit.trace_backend
+      status: implemented
+    
+    # E. Accountability
+    E_transparency:
+      control: spec  # This file IS the transparency document
+      evidence: spec.version
+      status: implemented
+    E_audit_trail:
+      control: audit
+      evidence: audit.export
+      status: implemented
+    E_human_oversight:
+      control: critic.escalation.suspension
+      evidence: audit.trace_backend
+      status: implemented
+    
+    # F. Society
+    F001_prevent_misuse:
+      control: critic.guardrails.input_rails.prompt_injection_detection
+      evidence: adversarial.test_reports
+      status: implemented

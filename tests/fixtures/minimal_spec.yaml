@@ -1,0 +1,119 @@
+version: "1.0.0"
+name: "test-spec"
+description: "Minimal spec used in unit tests"
+
+stalwart:
+  framework: langgraph
+  auth:
+    key_scope: stalwart-exec
+
+trainer:
+  optimization:
+    engine: agent_lightning
+    algorithm: grpo
+    reward_signals:
+      - name: user_feedback
+        type: explicit
+        weight: 0.4
+      - name: factual_accuracy
+        type: automated
+        weight: 0.4
+      - name: retrieval_quality
+        type: automated
+        weight: 0.2
+  cost_thresholds:
+    max_per_task_usd: 0.05
+    daily_budget_usd: 10
+    monthly_budget_usd: 100
+  auth:
+    key_scope: trainer-control
+
+critic:
+  guardrails:
+    orchestrator: nemo_guardrails
+    input_rails:
+      - name: prompt_injection_detection
+        engine: custom
+        action: block
+        severity: critical
+    output_rails:
+      - name: numerical_accuracy
+        engine: custom
+        action: block
+        severity: critical
+        tolerance_percent: 1.0
+      - name: hallucination_detection
+        engine: custom
+        action: block
+        severity: critical
+        threshold: 0.6
+      - name: investment_advice_detection
+        engine: custom
+        action: block
+        severity: high
+        prohibited_topics: ["investment_recommendations"]
+      - name: pii_output_scan
+        engine: custom
+        action: redact
+        severity: critical
+      - name: scope_check
+        engine: custom
+        action: warn
+        severity: low
+        allowed_topics: ["financial_data", "document_content"]
+  escalation:
+    degraded_mode:
+      trigger: "2 critical failures in 10 tasks"
+      action: "degrade"
+    quarantine_mode:
+      trigger: "3 critical failures in 10 tasks"
+      action: "quarantine"
+    suspension:
+      trigger: "5 critical failures in 10 tasks"
+      action: "suspend"
+    circuit_breaker:
+      trigger: "3 consecutive failures"
+      cooldown_seconds: 60
+      auto_retry: true
+  auth:
+    key_scope: critic-governance
+
+sentinel:
+  gateway:
+    engine: litellm
+    host: http://localhost:4000
+  pii_redaction:
+    engine: presidio
+    mode: during_call
+    entities_config:
+      PERSON: MASK
+      EMAIL_ADDRESS: MASK
+      CREDIT_CARD: BLOCK
+  tokenization:
+    enabled: false
+  auth:
+    virtual_keys: true
+    key_rotation_days: 90
+
+data_sovereignty:
+  default_routing: vpc_only
+  embedding_model:
+    provider: local
+    model: test-embedder
+    endpoint: http://localhost:11434
+  vector_store:
+    provider: qdrant
+    host: http://localhost:6333
+  routing_policy:
+    public:
+      - mock/public
+      - mock/local
+    internal:
+      - mock/internal
+      - mock/local
+    restricted:
+      - mock/local
+
+audit:
+  trace_backend: arize_phoenix
+  retention_days: 30

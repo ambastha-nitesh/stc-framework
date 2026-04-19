@@ -1,0 +1,106 @@
+ACME CORPORATION
+ANNUAL REPORT - FISCAL YEAR 2024
+Form 10-K Filing
+
+PART I - FINANCIAL HIGHLIGHTS
+
+Item 1. Business Overview
+
+Acme Corporation is a diversified technology company providing cloud computing, 
+enterprise software, and digital services to businesses worldwide. The company 
+operates in three reportable segments: Cloud Services, Enterprise Software, and 
+Professional Services.
+
+Item 6. Selected Financial Data
+
+CONSOLIDATED STATEMENTS OF INCOME
+(In millions, except per share amounts)
+
+                                    FY2024      FY2023      FY2022
+Revenue:
+  Cloud Services                   $12,450     $10,200     $8,100
+  Enterprise Software              $8,320      $7,890      $7,450
+  Professional Services            $3,280      $3,100      $2,950
+  Total Revenue                   $24,050     $21,190     $18,500
+
+Cost of Revenue                   $14,430     $12,714     $11,100
+Gross Profit                       $9,620      $8,476      $7,400
+Gross Margin                        40.0%       40.0%       40.0%
+
+Operating Expenses:
+  Research and Development         $3,607      $3,178      $2,775
+  Sales and Marketing              $2,886      $2,543      $2,220
+  General and Administrative       $1,202      $1,059        $925
+  Total Operating Expenses         $7,695      $6,780      $5,920
+
+Operating Income                   $1,925      $1,696      $1,480
+Operating Margin                     8.0%        8.0%        8.0%
+
+Interest Expense                     ($180)      ($165)      ($150)
+Other Income, Net                     $120        $95         $80
+Income Before Taxes                $1,865      $1,626      $1,410
+
+Income Tax Provision                  $466        $407        $352
+Effective Tax Rate                   25.0%       25.0%       25.0%
+
+Net Income                         $1,399      $1,220      $1,058
+Net Margin                           5.8%        5.8%        5.7%
+
+Earnings Per Share:
+  Basic                             $4.66       $4.07       $3.53
+  Diluted                           $4.60       $4.02       $3.48
+
+Weighted Average Shares:
+  Basic                              300.2       300.0       299.8
+  Diluted                            304.1       303.5       303.0
+
+SEGMENT PERFORMANCE
+
+Cloud Services Segment:
+Revenue of $12,450 million in FY2024 represented growth of 22.1% year-over-year.
+The segment benefited from strong enterprise cloud adoption, with annual recurring 
+revenue (ARR) reaching $14.2 billion, up 25% from $11.4 billion in FY2023. 
+Customer count exceeded 85,000, with net revenue retention rate of 125%.
+
+Enterprise Software Segment:
+Revenue of $8,320 million grew 5.5% year-over-year, driven by price increases 
+and cross-selling. License revenue declined 8% while subscription revenue grew 
+18%, reflecting the ongoing transition to cloud-based delivery. Segment operating 
+margin was 32%, consistent with the prior year.
+
+Professional Services Segment:
+Revenue of $3,280 million increased 5.8% year-over-year. Utilization rates 
+averaged 78%, up from 75% in FY2023. The segment supported 1,200 enterprise 
+implementations during the fiscal year, with average project duration of 14 months.
+
+BALANCE SHEET HIGHLIGHTS (as of fiscal year end)
+
+                                    FY2024      FY2023
+Total Assets                       $45,200     $40,100
+Cash and Equivalents                $6,800      $5,900
+Total Debt                         $12,500     $11,200
+Shareholders' Equity               $18,700     $17,100
+Debt-to-Equity Ratio                 0.67        0.65
+
+CASH FLOW
+
+Operating Cash Flow                 $4,810      $4,238
+Capital Expenditures               ($2,405)    ($2,119)
+Free Cash Flow                      $2,405      $2,119
+Free Cash Flow Margin                10.0%       10.0%
+
+GUIDANCE - FISCAL YEAR 2025
+
+Management projects the following for FY2025:
+- Total Revenue: $27,100 million to $27,700 million (growth of 12.7% to 15.2%)
+- Cloud Services Revenue: $15,300 million to $15,800 million (growth of 22.9% to 26.9%)
+- Operating Margin: 8.5% to 9.0%
+- Diluted EPS: $5.20 to $5.50
+- Free Cash Flow: $2,700 million to $2,900 million
+
+KEY RISKS
+
+The company faces risks including: increased competition in cloud markets, 
+cybersecurity threats, regulatory changes affecting data privacy and AI, 
+macroeconomic uncertainty, and the need for continued investment in research 
+and development to maintain competitive positioning.
